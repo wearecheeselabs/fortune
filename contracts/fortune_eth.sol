@@ -21,7 +21,7 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     mapping(uint => string) public tokenURI;
     mapping(address => uint) public whitelist;
 
-//    event Log(string msg, address _id, uint count, uint addressvalue);
+    //    event Log(string msg, address _id, uint count, uint addressvalue);
 
     constructor() ERC1155("") {
         name = name;
@@ -42,11 +42,11 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         _unpause();
     }
 
-    function withdrawAll() payable external onlyOwner {
+    function withdrawAll() external onlyOwner {
         payable(treasurer).transfer(address(this).balance);
     }
 
-    function withdrawPart(uint amount) payable external onlyOwner {
+    function withdrawPart(uint amount) external onlyOwner {
         payable(treasurer).transfer(amount);
     }
 
@@ -129,9 +129,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
                     WhitelistCount[0]++;
                 }
             }
-//            else {
-////                emit Log("address is already whitelisted", _addresses[i], WhitelistCount[_id - 1], whitelist[_addresses[i]]);
-//            }
+            //            else {
+            ////                emit Log("address is already whitelisted", _addresses[i], WhitelistCount[_id - 1], whitelist[_addresses[i]]);
+            //            }
         }
     }
 
@@ -165,9 +165,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
             WhitelistCount[0]--;
 
         }
-//        else {
-//            emit Log("Adress is not already whitelisted", _address, WhitelistCount[_id - 1], whitelist[_address]);
-//        }
+        //        else {
+        //            emit Log("Adress is not already whitelisted", _address, WhitelistCount[_id - 1], whitelist[_address]);
+        //        }
     }
 
     function IsWhitelisted(address _address) public view returns (uint) {
@@ -185,12 +185,12 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         return WhitelistCount[_id - 1];
     }
     modifier onlyWhitelistAddress(address _to) {
-//        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
+        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
         require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
         _;
     }
     modifier validTokenId(uint256 _id) {
-//        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
+        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
         require(_id <= supplies.length && _id > 0, "Token doesn't exist");
         _;
     }
