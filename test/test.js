@@ -16,18 +16,32 @@ let allAddresses;
 let addresses1;
 let addresses2;
 let addresses3;
-const mintPriceEther=".001";
+const mintPriceEther = ".001";
+// let contractTreasurer;
+// let contractWhitelistedUser1;
+// let contractWhitelistedUser2;
+// let contractNonWhitelistedUser;
 
+let fortuneWhitelistedUser1;
+let fortuneWhitelistedUser2;
+let fortuneNonWhitelistedUser;
+let fortuneTreasurer;
+
+
+let provider;
 
 before(async () => {
     allAddresses = [];
-    const temp = await ethers.getSigners();
+    let temp = await ethers.getSigners();
+    provider = temp[0].provider;
     for (i = 0; i < temp.length; i++) {
         allAddresses.push(temp[i].address);
     }
     addresses1 = allAddresses.slice(0, 10);
     addresses2 = allAddresses.slice(11, 16);
     addresses3 = allAddresses.slice(16);
+    treasurer = addresses3.at(-1);
+
 
     // console.log(addresses1)
     // console.log(addresses2)
@@ -41,6 +55,13 @@ before(async () => {
     owner = fortune.signer.address;
     console.log(`Contract Address: ${[fortune.address]}`);
     console.log(`Owner Address: ${[fortune.signer.address]}`);
+
+    fortuneWhitelistedUser1 = fortune.connect(addresses1[1]);
+    fortuneWhitelistedUser2 = fortune.connect(addresses2[1]);
+    fortuneNonWhitelistedUser = fortune.connect(addresses3[1]);
+    fortuneTreasurer = fortune.connect(treasurer);
+
+
     console.log('******************************************************');
 });
 
@@ -100,7 +121,7 @@ describe("whitelist", function () {
     });
 });
 
-describe("Contract Balance", function () {
+describe("Treasurer", function () {
     it("check if contract balance is 0 before minting.", async function () {
         expect(await fortune.contractBalance()).to.equal(0);
     });
@@ -110,17 +131,76 @@ describe("Contract Balance", function () {
     it("Get contract balance after a mint.", async function () {
         expect(await fortune.contractBalance()).to.not.equal(0);
     });
+    it("FAIL: Get contract balance by treasurer.", async function () {
+        expect(await fortuneTreasurer.contractBalance());
+    });
+    it("FAIL: Get contract balance by a non owner.", async function () {
+        expect(await fortuneWhitelistedUser1.contractBalance());
+    });
+    it("Treasurer should be owner initially.", async function () {
+        expect(await fortune.treasurer()).to.equal(owner);
+    });
+    it("Treasurer address can be changed by treasurer.", async function () {
+        expect(await fortune.changeTreasurer(treasurer));
+    });
+    it("Treasurer address should be treasurer now.", async function () {
+        expect(await fortune.treasurer()).to.equal(treasurer);
+    });
+    it("FAIL: Treasurer address can not be changed by owner.", async function () {
+        expect(await fortune.changeTreasurer(treasurer));
+    });
+    it("Get contract balance by owner.", async function () {
+        expect(await fortune.contractBalance());
+    });
+
+    it("FAIL: withdrawAll by treasurer.", async function () {
+        expect(await fortuneTreasurer.withdrawAll());
+    });
+
+    it("withdrawAll by owner.", async function () {
+        expect(await fortune.withdrawAll());
+    });
+
+    it("FAIL: withdrawPart by treasurer.", async function () {
+        expect(await fortuneTreasurer.withdrawPart(1000000));
+    });
+
+    it("withdrawPart by owner.", async function () {
+        expect(await fortune.withdrawPart("10000000"));
+    });
+
 });
 
 
-describe("Contract Balance", function () {
-    it("check if contract balance is 0 before minting.", async function () {
-        expect(await fortune.contractBalance()).to.equal(0);
+describe("Minting", function () {
+    it("m.", async function () {
+        for (let i = 0; i < allAddresses.length; i++) {
+            let val = await fortune.IsWhitelisted(allAddresses[i]);
+            expect(val).to.equal(0);
+            expect(val).to.not.equal([1, 2]);
+        }
     });
-    it("Mint Token ID 1", async function () {
-        expect(await fortune.mintAll(addresses1[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
+    it("whitelist addresses1", async function () {
+        expect(await fortune.batchWhitelistAddress(addresses1, 1)).to.not.equal("");
     });
-    it("Get contract balance after a mint.", async function () {
-        expect(await fortune.contractBalance()).to.not.equal(0);
+    it("whitelist addresses2", async function () {
+        expect(await fortune.batchWhitelistAddress(addresses2, 1)).to.not.equal("");
+    });
+
+    it("check if addresses are whitelisted after whitelisting.", async function () {
+        for (let i = 0; i < addresses1.concat(addresses2).length; i++) {
+            let val = parseInt(await fortune.IsWhitelisted(addresses1.concat(addresses2)[i]));
+            expect(val).to.be.oneOf([1, 2]);
+            // expect(val).to.be.oneOf([0,3]);
+            expect(val).to.be.not.oneOf([0, 3, 4, 5, 6, 7]);
+        }
+    });
+
+    it("check if third address list are not whitelisted.", async function () {
+        for (let i = 0; i < addresses3.length; i++) {
+            let val = parseInt(await fortune.IsWhitelisted(addresses3[i]));
+            expect(val).to.be.oneOf([0]);
+            expect(val).to.be.not.oneOf([3, 4, 5, 6, 7]);
+        }
     });
 });
