@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 
 
-contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
+contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     string public name = "Fortune Treasure Hunting";
     string public symbol = "FORT";
     address public treasurer;
@@ -71,8 +71,8 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     external
     payable
     whenNotPaused
-    onlyWhitelistAddress (_to)
     {
+        onlyWhitelistAddress (_to);
         require(msg.value >= rates[0], "Not enough ether sent");
 
         uint _id = IsWhitelisted(_to);
@@ -89,8 +89,8 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     function mint(address _to, uint _id)
     internal
     whenNotPaused
-    onlyWhitelistAddress (_to)
     {
+        onlyWhitelistAddress(_to);
         require(_id <= supplies.length && _id > 0, "Token doesn't exist");
 
         require(minted[_id - 1] + 1 <= supplies[_id - 1], "Not enough supply");
@@ -108,7 +108,8 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         _burnBatch(msg.sender, _ids, _amounts);
     }
 
-    function burnForMint(address _from, uint[] memory _burnIds, uint[] memory _burnAmounts, uint[] memory _mintIds, uint[] memory _mintAmounts) external onlyOwner {
+    function burnForMint(address _from, uint[] memory _burnIds, uint[] memory _burnAmounts, uint[] memory _mintIds, uint[] memory _mintAmounts) external {
+        onlyOwner();
         _burnBatch(_from, _burnIds, _burnAmounts);
         _mintBatch(_from, _mintIds, _mintAmounts, "");
     }
@@ -128,9 +129,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
 
     function batchWhitelistAddress(address[] memory _addresses, uint256 _id)
     external
-    onlyOwner
-    validTokenId (_id)
     {
+        onlyOwner();
+        validTokenId(_id);
         for (uint i = 0; i < _addresses.length; i++) {
             // emit Log("in for loop", _addresses[i], _count, whitelist[_addresses[i]]);
             if (whitelist[_addresses[i]] == 0) {
@@ -150,9 +151,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
 
     function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
     external
-    onlyOwner
-    validTokenId (_id)
     {
+        onlyOwner();
+        validTokenId(_id);
         uint256 _count = 0;
         for (uint i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
@@ -164,9 +165,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
 
     function _RemoveWhitelist(address _address, uint256 _id)
     internal
-    onlyOwner
-    validTokenId (_id)
     {
+        onlyOwner();
+        validTokenId(_id);
         if (whitelist[_address] != 0) {
             if (_id == 1) {
                 whitelist[_address] = 0;
@@ -187,8 +188,9 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         return whitelist[_address];
     }
 
-    function contractBalance() public onlyOwner view returns (uint256)
+    function contractBalance() public view returns (uint256)
     {
+        onlyOwner();
         return address(this).balance;
     }
 
@@ -197,21 +199,6 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     {
         return WhitelistCount[_id - 1];
     }
-//    modifier onlyWhitelistAddress(address _to) {
-//        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
-//        require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
-//        _;
-//    }
-//    modifier validTokenId(uint256 _id) {
-//        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
-//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-//        _;
-//    }
-//    modifier onlyTreasurer() {
-//        require(msg.sender == treasurer, "Only the current treasurer can call this function");
-//        _;
-//    }
-
 
     function onlyOwner() internal view {
         require(msg.sender == owner, "You are not the owner to call this function");
@@ -225,20 +212,7 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         require(msg.sender == treasurer, "Only the current treasurer can call this function");
     }
 
-
-    //    modifier onlyWhitelistAddress(address _to) {
-//        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
-//        require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
-//        _;
-//    }
-//    modifier validTokenId(uint256 _id) {
-//        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
-//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-//        _;
-//    }
-//    modifier onlyTreasurer() {
-//        require(msg.sender == treasurer, "Only the current treasurer can call this function");
-//        _;
-//    }
-
+    function validTokenId(uint256 _id) internal view {
+        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+    }
 }

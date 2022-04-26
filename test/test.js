@@ -11,10 +11,12 @@ let fortune;
 let tokenCount = 3;
 let uriBaseString = "IamanNFT";
 let owner;
+let treasurer;
 let allAddresses;
 let addresses1;
 let addresses2;
 let addresses3;
+const mintPriceEther=".001";
 
 
 before(async () => {
@@ -81,54 +83,44 @@ describe("whitelist", function () {
     });
 
     it("check if addresses are whitelisted after whitelisting.", async function () {
-        for (let i = 0; i < allAddresses.length; i++) {
-            let val = parseInt(await fortune.IsWhitelisted(allAddresses[i]));
+        for (let i = 0; i < addresses1.concat(addresses2).length; i++) {
+            let val = parseInt(await fortune.IsWhitelisted(addresses1.concat(addresses2)[i]));
             expect(val).to.be.oneOf([1, 2]);
             // expect(val).to.be.oneOf([0,3]);
             expect(val).to.be.not.oneOf([0, 3, 4, 5, 6, 7]);
         }
     });
 
-    it("check if second address list are whitelisted before whitelisting.", async function () {
-        for (let i = 0; i < addresses2.length; i++) {
-            let val = parseInt(await fortune.IsWhitelisted(addresses2[i]));
-            expect(val).to.be.oneOf([1, 2]);
-            expect(val).to.be.not.oneOf([0, 3, 4, 5, 6, 7]);
+    it("check if third address list are not whitelisted.", async function () {
+        for (let i = 0; i < addresses3.length; i++) {
+            let val = parseInt(await fortune.IsWhitelisted(addresses3[i]));
+            expect(val).to.be.oneOf([0]);
+            expect(val).to.be.not.oneOf([3, 4, 5, 6, 7]);
         }
     });
 });
 
+describe("Contract Balance", function () {
+    it("check if contract balance is 0 before minting.", async function () {
+        expect(await fortune.contractBalance()).to.equal(0);
+    });
+    it("Mint Token ID 1", async function () {
+        expect(await fortune.mintAll(addresses1[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
+    });
+    it("Get contract balance after a mint.", async function () {
+        expect(await fortune.contractBalance()).to.not.equal(0);
+    });
+});
 
-// describe("Initial State Test", function () {
-//     it("Treasurer exists and is the owner", async function () {
-//         expect(await fortune.treasurer()).to.equal("");
-//     });
-//
-// });
 
-
-//
-//
-// describe("Fortune", function () {
-//     it("Should return the new greeting once it's changed", async function () {
-//         const Fortune = await ethers.getContractFactory("Fortune");
-//         const fortune = await Fortune.deploy();
-//         await fortune.deployed();
-//
-//         expect(await fortune.uri(1)).to.equal("");
-//         let uriString = "Hola, mundo!"
-//         const setGreetingTx = await fortune.setURI(1, uriString);
-//
-//         // wait until the transaction is mined
-//         await setGreetingTx.wait();
-//
-//         expect(await fortune.uri(1)).to.equal(uriString);
-//     });
-//
-//     it("Check number is correct", async function () {
-//         const Fortune = await ethers.getContractFactory("Fortune");
-//         const fortune = await Fortune.deploy();
-//         await fortune.deployed();
-//         expect(await fortune.justReturnNumber(2)).to.equal(200);
-//     });
-// });
+describe("Contract Balance", function () {
+    it("check if contract balance is 0 before minting.", async function () {
+        expect(await fortune.contractBalance()).to.equal(0);
+    });
+    it("Mint Token ID 1", async function () {
+        expect(await fortune.mintAll(addresses1[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
+    });
+    it("Get contract balance after a mint.", async function () {
+        expect(await fortune.contractBalance()).to.not.equal(0);
+    });
+});
