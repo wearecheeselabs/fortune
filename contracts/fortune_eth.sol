@@ -3,7 +3,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+//import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 
@@ -12,6 +12,7 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     string public name = "Fortune Treasure Hunting";
     string public symbol = "FORT";
     address public treasurer;
+    address public owner;
 
     uint256[] supplies = [4000, 250];
     uint256[] minted = [0, 0];
@@ -27,31 +28,43 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
         name = name;
         symbol = symbol;
         treasurer = msg.sender;
+        owner = msg.sender;
     }
 
-    function setURI(uint _id, string memory _uri) external onlyOwner {
+    function setURI(uint _id, string memory _uri) external {
+        onlyOwner();
         tokenURI[_id] = _uri;
         emit URI(_uri, _id);
     }
 
-    function pause() public onlyOwner {
+    function pause() public {
+        onlyOwner();
         _pause();
     }
 
-    function unpause() public onlyOwner {
+    function unpause() public {
+        onlyOwner();
         _unpause();
     }
 
-    function withdrawAll() external onlyOwner {
+    function withdrawAll() external {
+        onlyOwner();
         payable(treasurer).transfer(address(this).balance);
     }
 
-    function withdrawPart(uint amount) external onlyOwner {
+    function withdrawPart(uint amount) external {
+        onlyOwner();
         payable(treasurer).transfer(amount);
     }
 
-    function changeTreasurer(address _treasurer) external onlyTreasurer {
+    function changeTreasurer(address _treasurer) external {
+        onlyTreasurer();
         treasurer = _treasurer;
+    }
+
+    function changeOwner(address _owner) external {
+        onlyOwner();
+        owner = _owner;
     }
 
     function mintAll(address _to)
@@ -184,19 +197,48 @@ contract Fortune is ERC1155, Ownable, Pausable, ERC1155Burnable {
     {
         return WhitelistCount[_id - 1];
     }
-    modifier onlyWhitelistAddress(address _to) {
-        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
+//    modifier onlyWhitelistAddress(address _to) {
+//        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
+//        require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
+//        _;
+//    }
+//    modifier validTokenId(uint256 _id) {
+//        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
+//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+//        _;
+//    }
+//    modifier onlyTreasurer() {
+//        require(msg.sender == treasurer, "Only the current treasurer can call this function");
+//        _;
+//    }
+
+
+    function onlyOwner() internal view {
+        require(msg.sender == owner, "You are not the owner to call this function");
+    }
+
+    function onlyWhitelistAddress(address _to) internal view {
         require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
-        _;
     }
-    modifier validTokenId(uint256 _id) {
-        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
-        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-        _;
-    }
-    modifier onlyTreasurer() {
+
+    function onlyTreasurer() internal view {
         require(msg.sender == treasurer, "Only the current treasurer can call this function");
-        _;
     }
+
+
+    //    modifier onlyWhitelistAddress(address _to) {
+//        //        emit Log("Modifer onlyWhitelistAddress", msg.sender, 0, whitelist[msg.sender]);
+//        require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
+//        _;
+//    }
+//    modifier validTokenId(uint256 _id) {
+//        //        emit Log("Modifer validTokenId", msg.sender, 0, whitelist[msg.sender]);
+//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+//        _;
+//    }
+//    modifier onlyTreasurer() {
+//        require(msg.sender == treasurer, "Only the current treasurer can call this function");
+//        _;
+//    }
 
 }
