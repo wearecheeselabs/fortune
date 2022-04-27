@@ -82,35 +82,40 @@ describe("Fortune Testing", function () {
 
 
 describe("whitelist", function () {
-    // before();
+    it("WhitelistCount for Token 1 at very beginning", async function () {
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
+    });
+    it("WhitelistCount for Token 2 at very beginning", async function () {
+        expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
+    });
+
     it("check if addresses are whitelisted before whitelisting.", async function () {
         for (let i = 0; i < allAddresses.length; i++) {
-            let val = await fortune.isWhitelisted(allAddresses[i]);
-            expect(val).to.equal(0);
-            expect(val).to.not.equal([1, 2]);
+            expect(await fortune.isWhitelisted(allAddresses[i])).to.be.equal(0);
         }
     });
     it("whitelist addresses1", async function () {
         expect(await fortune.batchWhitelistAddress(addresses1, 1)).to.not.equal("");
     });
     it("whitelist addresses2", async function () {
-        expect(await fortune.batchWhitelistAddress(addresses2, 1)).to.not.equal("");
+        expect(await fortune.batchWhitelistAddress(addresses2, 2)).to.not.equal("");
+    });
+    it("WhitelistCount for Token 1 after whitelisting", async function () {
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.length + addresses2.length);
+    });
+    it("WhitelistCount for Token 2 after whitelisting", async function () {
+        expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.length);
     });
 
     it("check if addresses are whitelisted after whitelisting.", async function () {
         for (let i = 0; i < addresses1.concat(addresses2).length; i++) {
-            let val = parseInt(await fortune.isWhitelisted(addresses1.concat(addresses2)[i]));
-            expect(val).to.be.oneOf([1, 2]);
-            // expect(val).to.be.oneOf([0,3]);
-            expect(val).to.be.not.oneOf([0, 3, 4, 5, 6, 7]);
+            expect(parseInt(await fortune.isWhitelisted(addresses1.concat(addresses2)[i]))).to.be.oneOf([1, 2]);
         }
     });
 
-    it("check if third address list are not whitelisted.", async function () {
+    it("check if addresses3 list are not whitelisted.", async function () {
         for (let i = 0; i < addresses3.length; i++) {
-            let val = parseInt(await fortune.isWhitelisted(addresses3[i]));
-            expect(val).to.be.oneOf([0]);
-            expect(val).to.be.not.oneOf([3, 4, 5, 6, 7]);
+            expect(parseInt(await fortune.isWhitelisted(addresses3[i]))).to.be.equal(0);
         }
     });
 });
@@ -286,6 +291,7 @@ describe("Pause and Unpause", function () {
     it("Whitelisting 2 possible after paused", async function () {
         expect(await fortune.batchWhitelistAddress(addresses2, 2));
     });
+
     it("FAIL: Mint Token ID 1 not possible after Pause", async function () {
         expect(await fortune.mintAll(addresses1[1], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
     });
@@ -295,7 +301,7 @@ describe("Pause and Unpause", function () {
     });
 
     it("WhitelistCount for Token 1 while paused", async function () {
-        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.length);
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.length + addresses2.length);
     });
     it("WhitelistCount for Token 2 while paused", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.length);
@@ -339,3 +345,4 @@ describe("Pause and Unpause", function () {
         expect(await fortune.batchRemoveWhitelist(addresses2, 2));
     });
 });
+

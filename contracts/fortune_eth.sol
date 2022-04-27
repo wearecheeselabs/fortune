@@ -15,9 +15,9 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     address public owner;
 
     uint256[] supplies = [4000, 250];
-//    uint256[] supplies = [4, 2];
+//    uint256[] supplies = [10, 4];
     uint256[] minted = [0, 0];
-    uint256[] rates = [.4 ether, 0 ether];
+    uint256[] rates = [.001 ether, 0 ether];
     uint256[] WhitelistCount = [0, 0];
 
     mapping(uint => string) public tokenURI;
@@ -145,9 +145,6 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
                     WhitelistCount[0]++;
                 }
             }
-            //            else {
-            ////                emit Log("address is already whitelisted", _addresses[i], WhitelistCount[_id - 1], whitelist[_addresses[i]]);
-            //            }
         }
     }
 
@@ -156,13 +153,9 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     {
         onlyOwner();
         validTokenId(_id);
-//        uint256 _count = 0;
         for (uint i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
-//            _count++;
         }
-//        WhitelistCount[_id - 1] -= _count;
-
     }
 
     function _RemoveWhitelist(address _address, uint256 _id)
@@ -176,9 +169,9 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
             }
             else {
                 whitelist[_address] = 1;
-                WhitelistCount[_id - 1]--;
             }
-            WhitelistCount[0]--;
+            WhitelistCount[_id - 1]--;
+//            WhitelistCount[0]--;
 
         }
         //        else {
@@ -200,6 +193,11 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     function getWhitelistCount(uint _id) public view returns (uint)
     {
         return WhitelistCount[_id - 1];
+    }
+
+    function getMintedCount(uint _id) public view returns (uint)
+    {
+        return minted[_id - 1];
     }
 
     function onlyOwner() internal view {
