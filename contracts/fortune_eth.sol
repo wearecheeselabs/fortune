@@ -15,8 +15,9 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     address public owner;
 
     uint256[] supplies = [4000, 250];
+//    uint256[] supplies = [4, 2];
     uint256[] minted = [0, 0];
-    uint256[] rates = [.001 ether, 0 ether];
+    uint256[] rates = [.4 ether, 0 ether];
     uint256[] WhitelistCount = [0, 0];
 
     mapping(uint => string) public tokenURI;
@@ -48,12 +49,12 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     }
 
     function withdrawAll() external {
-        onlyOwner();
+        onlyTreasurer();
         payable(treasurer).transfer(address(this).balance);
     }
 
     function withdrawPart(uint amount) external {
-        onlyOwner();
+        onlyTreasurer();
         payable(treasurer).transfer(amount);
     }
 
@@ -72,16 +73,17 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     payable
     whenNotPaused
     {
-        onlyWhitelistAddress (_to);
+        onlyWhitelistAddress(_to);
         require(msg.value >= rates[0], "Not enough ether sent");
 
-        uint _id = IsWhitelisted(_to);
+        uint _id = isWhitelisted(_to);
         mint(_to, _id);
 
         if (_id != 1) {
             mint(_to, 1);
         }
-        _RemoveWhitelist(_to, _id);
+//        _RemoveWhitelist(_to, _id);
+        whitelist[_to] = 99;
         //remove whitelist for both ids 1 and 2.
     }
 
@@ -154,12 +156,12 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     {
         onlyOwner();
         validTokenId(_id);
-        uint256 _count = 0;
+//        uint256 _count = 0;
         for (uint i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
-            _count++;
+//            _count++;
         }
-        WhitelistCount[_id - 1] -= _count;
+//        WhitelistCount[_id - 1] -= _count;
 
     }
 
@@ -167,8 +169,8 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     internal
     {
         onlyOwner();
-        validTokenId(_id);
-        if (whitelist[_address] != 0) {
+//        if (whitelist[_address] != 0 && whitelist[_address] != 99) {
+        if (whitelist[_address] == _id) {
             if (_id == 1) {
                 whitelist[_address] = 0;
             }
@@ -184,7 +186,7 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
         //        }
     }
 
-    function IsWhitelisted(address _address) public view returns (uint) {
+    function isWhitelisted(address _address) public view returns (uint) {
         return whitelist[_address];
     }
 
@@ -206,6 +208,7 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
 
     function onlyWhitelistAddress(address _to) internal view {
         require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
+        require(whitelist[_to] != 99, "Address already minted!");
     }
 
     function onlyTreasurer() internal view {
