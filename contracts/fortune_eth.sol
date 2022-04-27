@@ -53,7 +53,7 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
         payable(treasurer).transfer(address(this).balance);
     }
 
-    function withdrawPart(uint amount) external {
+    function withdrawPart(uint256 amount) external {
         onlyTreasurer();
         payable(treasurer).transfer(amount);
     }
