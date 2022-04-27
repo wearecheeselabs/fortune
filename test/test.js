@@ -24,7 +24,7 @@ let provider;
 let metadata_eac = "https://gateway.pinata.cloud/ipfs/QmSQ6E5dTgjgVchVdYX4CLfv2SrLWLWMTs7VVYWWqZukHw";
 let metadata_drone = "https://gateway.pinata.cloud/ipfs/QmW1ySEeL4tDJSa8N3ZT4GZNFbKxeAfZbFGca88N6aqhwZ";
 let metadata_array = [metadata_eac, metadata_drone]
-
+let supplies=[10, 4];
 
 before(async () => {
     allAddresses = [];
@@ -61,6 +61,13 @@ before(async () => {
     console.log('******************************************************');
 });
 
+describe("genericFunctions", function () {
+    it("getMaxSupply", async function () {
+        for (let i = 0; i < supplies.length; i++) {
+            expect(await fortune.getMaxSupply(i + 1).to.equal(supplies[i]));
+        };
+    });
+});
 
 describe("setURI", function () {
     it("Pause minting", async function () {
@@ -172,8 +179,11 @@ describe("Pause and Unpause", function () {
     it("batchRemoveWhitelist 1 possible before paused", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses1, 1));
     });
-    it("batchRemoveWhitelist 2 possible before paused", async function () {
+    it("batchRemoveWhitelist addresses2 for Token 2 possible before paused", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses2, 2));
+    });
+    it("batchRemoveWhitelist addresses2 for Token 1 possible before paused", async function () {
+        expect(await fortune.batchRemoveWhitelist(addresses2, 1));
     });
 
     it("Pause minting", async function () {
@@ -204,8 +214,12 @@ describe("Pause and Unpause", function () {
     it("batchRemoveWhitelist 1 possible after paused", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses1, 1));
     });
-    it("batchRemoveWhitelist 2 possible after paused", async function () {
+    it("batchRemoveWhitelist addresses2 for token 2 possible after paused", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses2, 2));
+    });
+
+    it("batchRemoveWhitelist addresses2 for token 1 possible after paused", async function () {
+        expect(await fortune.batchRemoveWhitelist(addresses2, 1));
     });
 
     it("UnPause minting", async function () {
@@ -220,14 +234,14 @@ describe("Pause and Unpause", function () {
     });
 
     it("Mint Token ID 1 after Unpause", async function () {
-        expect(await fortune.mintAll(addresses1[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
+        expect(await fortune.mintAll(addresses1[1], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
     });
     it("Mint Token ID 2 after Unpause", async function () {
-        expect(await fortune.mintAll(addresses2[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
+        expect(await fortune.mintAll(addresses2[1], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
     });
 
     it("WhitelistCount for Token 1 after Unpause", async function () {
-        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.length);
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.length+addresses2.length);
     });
     it("WhitelistCount for Token 2 after Unpause", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.length);
@@ -371,6 +385,9 @@ describe("Withdraw Fund", function () {
     it("Get contract balance by owner.", async function () {
         expect(await fortune.contractBalance());
     });
+    it("withdrawPart by treasurer.", async function () {
+        expect(await fortuneTreasurer.withdrawPart(1));
+    });
 
     it("withdrawAll by treasurer.", async function () {
         expect(await fortuneTreasurer.withdrawAll());
@@ -378,10 +395,6 @@ describe("Withdraw Fund", function () {
 
     it("FAIL: withdrawAll by owner.", async function () {
         expect(await fortune.withdrawAll());
-    });
-
-    it("withdrawPart by treasurer.", async function () {
-        expect(await fortuneTreasurer.withdrawPart(1000000));
     });
 
     it("FAIL: withdrawPart by owner.", async function () {

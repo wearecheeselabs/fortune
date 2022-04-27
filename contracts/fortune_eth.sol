@@ -14,8 +14,8 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     address public treasurer;
     address public owner;
 
-    uint256[] supplies = [4000, 250];
-//    uint256[] supplies = [10, 4];
+//    uint256[] supplies = [4000, 250];
+    uint256[] supplies = [10, 4];
     uint256[] minted = [0, 0];
     uint256[] rates = [.001 ether, 0 ether];
     uint256[] WhitelistCount = [0, 0];
@@ -198,6 +198,10 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     function getMintedCount(uint _id) public view returns (uint)
     {
         return minted[_id - 1];
+    }
+    function getMaxSupplyt(uint _id) public view returns (uint)
+    {
+        return supplies[_id - 1];
     }
 
     function onlyOwner() internal view {
