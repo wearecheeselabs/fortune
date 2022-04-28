@@ -5,7 +5,6 @@ const {int} = require("hardhat/internal/core/params/argumentTypes");
 
 let fortune;
 let tokenCount = 2;
-let uriBaseString = "IamanNFT";
 let owner;
 let treasurer;
 let allAddresses;
