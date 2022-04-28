@@ -87,6 +87,7 @@ describe("setURI", function () {
 
             expect(await fortune.uri(i + 1)).to.equal(metadata_array[i]);
             expect(await fortune.uri(i + 1)).to.not.equal("");
+
         }
     });
     it("FAIL: non owner can't setURI", async function () {
