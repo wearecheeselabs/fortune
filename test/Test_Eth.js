@@ -4,7 +4,6 @@ const {int} = require("hardhat/internal/core/params/argumentTypes");
 
 
 let fortune;
-let tokenCount = 2;
 let owner;
 let treasurer;
 let allAddresses;
@@ -78,13 +77,21 @@ describe("setURI", function () {
         expect(await fortune.pause());
     });
     it("First URI should be empty for all token IDs", async function () {
-        for (let i = 0; i < tokenCount; i++) {
+        for (let i = 0; i < supplies.length; i++) {
             expect(await fortune.uri(i + 1)).to.equal("");
         }
     });
     it("URI should be changed once it is set using setURI", async function () {
-        for (let i = 0; i < tokenCount; i++) {
+        for (let i = 0; i < supplies.length; i++) {
             expect(await fortune.setURI(i + 1, metadata_array[i]));
+
+            expect(await fortune.uri(i + 1)).to.equal(metadata_array[i]);
+            expect(await fortune.uri(i + 1)).to.not.equal("");
+        }
+    });
+    it("FAIL: non owner can't setURI", async function () {
+        for (let i = 0; i < supplies.length; i++) {
+            expect(await fortuneWhitelistedUser1.setURI(i + 1, metadata_array[i]));
 
             expect(await fortune.uri(i + 1)).to.equal(metadata_array[i]);
             expect(await fortune.uri(i + 1)).to.not.equal("");

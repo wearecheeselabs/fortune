@@ -1179,12 +1179,12 @@ pragma solidity ^0.8.4;
 
 
 
-contract Fortune is ERC1155, Pausable, ERC1155Burnable {
+contract FortunePol is ERC1155, Pausable, ERC1155Burnable {
     string public name="Fortune Treasure Hunting";
     string public symbol="FORT";
     address public owner;
 
-    uint256[] supplies = [250, 250, 250];
+    uint256[] supplies = [3, 3, 3];
     uint256[] minted = [0, 0, 0];
     uint256[] WhitelistCount=[0, 0, 0];
 

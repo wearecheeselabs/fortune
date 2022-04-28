@@ -4,30 +4,31 @@ const {int} = require("hardhat/internal/core/params/argumentTypes");
 
 
 let fortune;
-let tokenCount = 2;
 let owner;
-let treasurer;
+
 let allAddresses;
 let addresses1;
 let addresses2;
 let addresses3;
-const mintPriceEther = ".001";
+let addresses4;
 
 let fortuneWhitelistedUser1;
 let fortuneWhitelistedUser2;
+let fortuneWhitelistedUser3;
 let fortuneNonWhitelistedUser;
-let fortuneTreasurer;
 
 let provider;
 
-let metadata_eac = "https://gateway.pinata.cloud/ipfs/QmSQ6E5dTgjgVchVdYX4CLfv2SrLWLWMTs7VVYWWqZukHw";
-let metadata_drone = "https://gateway.pinata.cloud/ipfs/QmW1ySEeL4tDJSa8N3ZT4GZNFbKxeAfZbFGca88N6aqhwZ";
-let metadata_array = [metadata_eac, metadata_drone]
-let supplies=[9, 4];
-// let supplies = [4000, 250];
+let metadata_medpack = "https://gateway.pinata.cloud/ipfs/QmSQUfykZ8iixmwhwr9XbhpaY3KdCghTXTWofyHu1ZDsXW";
+let metadata_gear = "https://gateway.pinata.cloud/ipfs/QmXpQ7EmrjwwgNcZbLUCTynyYKvGnVbpmko8wjSbbLTorN";
+let metadata_supplies = "https://gateway.pinata.cloud/ipfs/QmZFkPa1VUZ4W5aizTLyC16A2aXjWoMuAdwy2r1vsbv3bw";
+let metadata_array = [metadata_medpack, metadata_gear, metadata_supplies];
+let supplies=[3, 3, 3];
+// let supplies = [250, 250, 250];
 
 let token1Supply=supplies[0];
 let token2Supply=supplies[1];
+let token3Supply=supplies[2];
 
 
 before(async () => {
@@ -37,19 +38,19 @@ before(async () => {
     for (i = 0; i < signers.length; i++) {
         allAddresses.push(signers[i].address);
     }
-    addresses1 = allAddresses.slice(0, 10);
-    addresses2 = allAddresses.slice(11, 16);
-    addresses3 = allAddresses.slice(16);
-    treasurer = addresses3.at(-1);
-
+    addresses1 = allAddresses.slice(0, 5);
+    addresses2 = allAddresses.slice(6, 10);
+    addresses3 = allAddresses.slice(11, 15);
+    addresses4 = allAddresses.slice(16);
 
     // console.log(addresses1)
     // console.log(addresses2)
     // console.log(addresses3)
+    // console.log(addresses4)
 
     console.log("before executed.");
     // Use one of those accounts to deploy the contract
-    const Fortune = await ethers.getContractFactory("Fortune");
+    const Fortune = await ethers.getContractFactory("FortunePol");
     fortune = await Fortune.deploy();
     await fortune.deployed();
     owner = fortune.signer.address;
@@ -57,11 +58,9 @@ before(async () => {
     console.log(`Owner Address: ${[fortune.signer.address]}`);
 
     fortuneWhitelistedUser1 = fortune.connect(signers[1]);
-    fortuneWhitelistedUser2 = fortune.connect(signers[12]);
+    fortuneWhitelistedUser2 = fortune.connect(signers[6]);
+    fortuneWhitelistedUser3 = fortune.connect(signers[12]);
     fortuneNonWhitelistedUser = fortune.connect(signers[17]);
-    fortuneTreasurer = fortune.connect(signers.at(-1));
-
-
     console.log('******************************************************');
 });
 
@@ -78,13 +77,21 @@ describe("setURI", function () {
         expect(await fortune.pause());
     });
     it("First URI should be empty for all token IDs", async function () {
-        for (let i = 0; i < tokenCount; i++) {
+        for (let i = 0; i < supplies.length; i++) {
             expect(await fortune.uri(i + 1)).to.equal("");
         }
     });
     it("URI should be changed once it is set using setURI", async function () {
-        for (let i = 0; i < tokenCount; i++) {
+        for (let i = 0; i < supplies.length; i++) {
             expect(await fortune.setURI(i + 1, metadata_array[i]));
+
+            expect(await fortune.uri(i + 1)).to.equal(metadata_array[i]);
+            expect(await fortune.uri(i + 1)).to.not.equal("");
+        }
+    });
+    it("FAIL: non owner can't setURI", async function () {
+        for (let i = 0; i < supplies.length; i++) {
+            expect(await fortuneWhitelistedUser1.setURI(i + 1, metadata_array[i]));
 
             expect(await fortune.uri(i + 1)).to.equal(metadata_array[i]);
             expect(await fortune.uri(i + 1)).to.not.equal("");
@@ -95,6 +102,7 @@ describe("setURI", function () {
 describe("maxSupply", function () {
     let token1Supply=supplies[0];
     let token2Supply=supplies[1];
+    let token3Supply=supplies[2];
 
     it("Whitelist addresses1 equal to supply", async function () {
         expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply), 1));
@@ -160,9 +168,9 @@ describe("maxSupply", function () {
     it("batchRemoveWhitelist addresses2 bulk remove from Token 2.", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses2, 2));
     });
-    it("batchRemoveWhitelist addresses2 bulk remove from Token 1.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses2, 1));
-    });
+    // it("batchRemoveWhitelist addresses2 bulk remove from Token 1.", async function () {
+    //     expect(await fortune.batchRemoveWhitelist(addresses2, 1));
+    // });
     it("WhitelistCount for Token 2 after bulk removal.", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
     });
@@ -194,7 +202,7 @@ describe("maxSupply", function () {
     });
 
     it("FAIL: Whitelist addresses2 more than supply", async function () {
-        console.log(addresses2.slice(0, token2Supply+1));
+        // console.log(addresses2.slice(0, token2Supply+1));
         expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply+1), 2));
     });
     it("WhitelistCount for Token 2 after.", async function () {
@@ -213,6 +221,62 @@ describe("maxSupply", function () {
     it("WhitelistCount for Token 1 is 0 after bulk removal.", async function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
     });
+
+
+
+
+
+    it("Whitelist addresses3 equal to supply", async function () {
+        expect(await fortune.batchWhitelistAddress(addresses3.slice(0, token3Supply), 3));
+    });
+    it("WhitelistCount for Token 3.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(addresses3.slice(0, token3Supply).length);
+    });
+    it("batchRemoveWhitelist addresses3 bulk remove.", async function () {
+        expect(await fortune.batchRemoveWhitelist(addresses3, 3));
+    });
+    it("WhitelistCount for Token 3 after bulk removal.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(0);
+    });
+
+    it("Whitelist addresses3 less than supply", async function () {
+        expect(await fortune.batchWhitelistAddress(addresses3.slice(0, token3Supply-1), 3));
+    });
+    it("WhitelistCount for Token 3.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(addresses3.slice(0, token3Supply-1).length);
+    });
+    it("batchRemoveWhitelist addresses3 bulk remove.", async function () {
+        expect(await fortune.batchRemoveWhitelist(addresses3, 3));
+    });
+    it("WhitelistCount for Token 3 after bulk removal.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(0);
+    });
+    it("Address length is more than or equal to token3Supply+1.", async function () {
+        assert(token3Supply+1<=addresses3.length, "Reduce Max Supply to complete the next test case.");
+    });
+    it("Check if addresses3 are not whitelisted before whitelisting.", async function () {
+        for (let i = 0; i < addresses3.slice(0, token3Supply+1).length; i++) {
+            expect(await fortune.isWhitelisted(addresses3.slice(0, token3Supply+1)[i])).to.be.equal(0);
+        }
+    });
+
+    it("FAIL: Whitelist addresses3 more than supply", async function () {
+        expect(await fortune.batchWhitelistAddress(addresses3.slice(0, token3Supply+1), 3));
+    });
+    it("WhitelistCount for Token 3 after.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(0);
+    });
+    it("batchRemoveWhitelist addresses3 bulk remove.", async function () {
+        expect(await fortune.batchRemoveWhitelist(addresses3, 3));
+    });
+    it("WhitelistCount for Token 3 after bulk removal.", async function () {
+        expect(await fortune.getWhitelistCount(3)).to.be.equal(0);
+    });
+
+    it("WhitelistCount for Token 2 before whitelisting", async function () {
+        expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
+    });
+
 });
 
 describe("whitelist", function () {
