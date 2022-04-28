@@ -2,10 +2,14 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
-//import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
+//import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
+////import "@openzeppelin/contracts/access/Ownable.sol";
+//import "@openzeppelin/contracts/security/Pausable.sol";
+//import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
+
+import "ERC1155.sol";
+import "Pausable.sol";
+import "ERC1155Burnable.sol";
 
 
 contract Fortune is ERC1155, Pausable, ERC1155Burnable {
