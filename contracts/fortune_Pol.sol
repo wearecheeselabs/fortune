@@ -1236,8 +1236,6 @@ contract FortunePol is ERC1155, Pausable, ERC1155Burnable {
         onlyWhitelistAddress (_to);
         uint256 _id = isWhitelisted(_to);
         require(_id <= supplies.length && _id >0, "Token doesn't exist");
-        //        uint256 index=_id-1;
-
         require(minted[_id-1] + 1 <= supplies[_id-1], "Not enough supply");
         _mint(_to, _id, 1, "");
         minted[_id-1]++;
