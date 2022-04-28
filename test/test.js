@@ -261,7 +261,7 @@ describe("whitelist", function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses2.slice(0, token2Supply).length);
     });
     it("WhitelistCount for Token 2 after whitelisting", async function () {
-        expect(await fortune.getWhitelistCount(2)).to.be.equal(Math.min(addresses2.length, supplies[1]));
+        expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.slice(0, token2Supply).length);
     });
 
     it("check if addresses2 list are whitelisted.", async function () {
