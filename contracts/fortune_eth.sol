@@ -1394,5 +1394,4 @@ contract Fortune is ERC1155, Pausable, ERC1155Burnable {
     function validTokenId(uint256 _id) internal view {
         require(_id <= supplies.length && _id > 0, "Token doesn't exist");
     }
-
 }
