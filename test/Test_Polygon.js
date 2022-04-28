@@ -288,7 +288,7 @@ describe("whitelist", function () {
         }
     });
     it("FAIL: whitelist addresses1 by non owner is not possible.", async function () {
-        expect(await fortuneWhitelistedUser1.batchWhitelistAddress(addresses1, 1));
+        expect(await fortuneWhitelistedUser1.batchWhitelistAddress(addresses1.slice(0, token1Supply), 1));
     });
     it("whitelist addresses1 by owner is possible.", async function () {
         expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply), 1));
@@ -300,17 +300,17 @@ describe("whitelist", function () {
     });
 
     it("batchRemoveWhitelist addresses1 Token 1 bulk remove.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses1, 1));
+        expect(await fortune.batchRemoveWhitelist(addresses1.slice(0, token1Supply), 1));
     });
     it("batchRemoveWhitelist addresses2 Token 2 bulk remove.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses2, 2));
+        expect(await fortune.batchRemoveWhitelist(addresses2.slice(0, token2Supply), 2));
     });
     it("batchRemoveWhitelist addresses2 Token 1 bulk remove.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses2, 1));
+        expect(await fortune.batchRemoveWhitelist(addresses2.slice(0, token2Supply), 2));
     });
 
     it("FAIL: whitelist addresses2 by non owner is not possible.", async function () {
-        expect(await fortuneWhitelistedUser1.batchWhitelistAddress(addresses2, 2));
+        expect(await fortuneWhitelistedUser1.batchWhitelistAddress(addresses2.slice(0, token2Supply), 2));
     });
     it("whitelist addresses2", async function () {
         expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply), 2));
@@ -335,23 +335,23 @@ describe("whitelist", function () {
     });
 
     it("FAIL: batchRemoveWhitelist addresses1 by non owner is not possible.", async function () {
-        expect(await fortuneWhitelistedUser1.batchRemoveWhitelist(addresses1));
+        expect(await fortuneWhitelistedUser1.batchRemoveWhitelist(addresses1.slice(0, token1Supply), 1));
     });
     it("FAIL: batchRemoveWhitelist addresses2 by non owner is not possible.", async function () {
-        expect(await fortuneWhitelistedUser1.batchRemoveWhitelist(addresses2));
+        expect(await fortuneWhitelistedUser1.batchRemoveWhitelist(addresses2.slice(0, token2Supply), 2));
     });
 
     it("batchRemoveWhitelist addresses1 by owner.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses1, 1));
+        expect(await fortune.batchRemoveWhitelist(addresses1.slice(0, token1Supply), 1));
     });
     it("batchRemoveWhitelist addresses2 by owner.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses2, 2));
+        expect(await fortune.batchRemoveWhitelist(addresses2.slice(0, token2Supply), 2));
     });
     it("WhitelistCount for Token 1 after batchRemoveWhitelist.", async function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
     });
     it("batchRemoveWhitelist addresses2 from token 1 by owner.", async function () {
-        expect(await fortune.batchRemoveWhitelist(addresses2, 1));
+        expect(await fortune.batchRemoveWhitelist(addresses2.slice(0, token2Supply), 1));
     });
     it("WhitelistCount for address1 Token 1 after batchRemoveWhitelist.", async function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
