@@ -15,14 +15,14 @@
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@nomiclabs/hardhat-waffle": "^2.0.3",
-    "hardhat-contract-sizer": "^2.5.0",
-    "hardhat-deploy": "^0.10.6",
-    "hardhat-gas-reporter": "^1.0.8",
-    "solidity-coverage": "^0.7.20",
     "chai": "^4.3.6",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.4",
-    "hardhat": "^2.9.3"
+    "hardhat": "^2.9.3",
+    "hardhat-contract-sizer": "^2.5.0",
+    "hardhat-deploy": "^0.10.6",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.7.20"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.5.0",
