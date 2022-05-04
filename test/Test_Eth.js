@@ -22,13 +22,11 @@ let provider;
 let metadata_eac = "https://gateway.pinata.cloud/ipfs/QmSQ6E5dTgjgVchVdYX4CLfv2SrLWLWMTs7VVYWWqZukHw";
 let metadata_drone = "https://gateway.pinata.cloud/ipfs/QmW1ySEeL4tDJSa8N3ZT4GZNFbKxeAfZbFGca88N6aqhwZ";
 let metadata_array = [metadata_eac, metadata_drone]
-let supplies=[9, 4];
+let supplies = [9, 4];
 // let supplies = [4000, 250];
 
-let token1Supply=supplies[0];
-let token2Supply=supplies[1];
-
-
+let token1Supply = supplies[0];
+let token2Supply = supplies[1];
 
 before(async () => {
     allAddresses = [];
@@ -69,7 +67,8 @@ describe("genericFunctions", function () {
     it("getMaxSupply", async function () {
         for (let i = 0; i < supplies.length; i++) {
             expect(await fortune.getMaxSupply(i + 1)).to.equal(supplies[i]);
-        };
+        }
+        ;
     });
 });
 
@@ -101,8 +100,8 @@ describe("setURI", function () {
 });
 
 describe("maxSupply", function () {
-    let token1Supply=supplies[0];
-    let token2Supply=supplies[1];
+    let token1Supply = supplies[0];
+    let token2Supply = supplies[1];
 
     it("Whitelist addresses1 equal to supply", async function () {
         expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply), 1));
@@ -118,10 +117,10 @@ describe("maxSupply", function () {
     });
 
     it("Whitelist addresses1 less than supply", async function () {
-        expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply-1), 1));
+        expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply - 1), 1));
     });
     it("WhitelistCount for Token 1.", async function () {
-        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.slice(0, token1Supply-1).length);
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.slice(0, token1Supply - 1).length);
     });
     it("batchRemoveWhitelist addresses1 bulk remove.", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses1, 1));
@@ -130,16 +129,16 @@ describe("maxSupply", function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
     });
     it("Address length is more than or equal to token1Supply+1.", async function () {
-        assert(token1Supply+1<=addresses1.length, "Reduce Max Supply to complete the next test case.");
+        assert(token1Supply + 1 <= addresses1.length, "Reduce Max Supply to complete the next test case.");
     });
     it("Check if addresses1 are not whitelisted before whitelisting.", async function () {
-        for (let i = 0; i < addresses1.slice(0, token1Supply+1).length; i++) {
-            expect(await fortune.isWhitelisted(addresses1.slice(0, token1Supply+1)[i])).to.be.equal(0);
+        for (let i = 0; i < addresses1.slice(0, token1Supply + 1).length; i++) {
+            expect(await fortune.isWhitelisted(addresses1.slice(0, token1Supply + 1)[i])).to.be.equal(0);
         }
     });
 
     it("FAIL: Whitelist addresses1 more than supply", async function () {
-        expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply+1), 1));
+        expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply + 1), 1));
     });
     it("WhitelistCount for Token 1 after.", async function () {
         expect(await fortune.getWhitelistCount(1)).to.be.equal(0);
@@ -154,9 +153,6 @@ describe("maxSupply", function () {
     it("WhitelistCount for Token 2 before whitelisting", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
     });
-
-
-
 
 
     it("Whitelist addresses2 equal to supply", async function () {
@@ -177,10 +173,10 @@ describe("maxSupply", function () {
 
     it("Whitelist addresses2 less than supply", async function () {
         // console.log(addresses2.slice(0, token2Supply-1));
-        expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply-1), 2));
+        expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply - 1), 2));
     });
     it("WhitelistCount for Token 2.", async function () {
-        expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.slice(0, token2Supply-1).length);
+        expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.slice(0, token2Supply - 1).length);
     });
     it("batchRemoveWhitelist addresses2 Token 2 bulk remove.", async function () {
         expect(await fortune.batchRemoveWhitelist(addresses2, 2));
@@ -192,18 +188,18 @@ describe("maxSupply", function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
     });
     it("Address length is more than or equal to token2Supply+1.", async function () {
-        assert(token2Supply+1<=addresses2.length, "Reduce Max Supply to complete the next test case.");
+        assert(token2Supply + 1 <= addresses2.length, "Reduce Max Supply to complete the next test case.");
     });
 
     it("Check if addresses2 are not whitelisted before whitelisting.", async function () {
-        for (let i = 0; i < addresses2.slice(0, token2Supply+1).length; i++) {
-            expect(await fortune.isWhitelisted(addresses2.slice(0, token2Supply+1)[i])).to.be.equal(0);
+        for (let i = 0; i < addresses2.slice(0, token2Supply + 1).length; i++) {
+            expect(await fortune.isWhitelisted(addresses2.slice(0, token2Supply + 1)[i])).to.be.equal(0);
         }
     });
 
     it("FAIL: Whitelist addresses2 more than supply", async function () {
-        console.log(addresses2.slice(0, token2Supply+1));
-        expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply+1), 2));
+        console.log(addresses2.slice(0, token2Supply + 1));
+        expect(await fortune.batchWhitelistAddress(addresses2.slice(0, token2Supply + 1), 2));
     });
     it("WhitelistCount for Token 2 after.", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(0);
@@ -311,8 +307,8 @@ describe("whitelist", function () {
 });
 
 describe("Pause and Unpause", function () {
-    token1Supply=2;
-    token2Supply=2;
+    token1Supply = 2;
+    token2Supply = 2;
     it("Whitelisting 1 possible before paused", async function () {
         expect(await fortune.batchWhitelistAddress(addresses1.slice(0, token1Supply), 1));
     });
@@ -390,7 +386,7 @@ describe("Pause and Unpause", function () {
     });
 
     it("WhitelistCount for Token 1 after Unpause", async function () {
-        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.slice(0, token1Supply).length+addresses2.slice(0, token2Supply).length);
+        expect(await fortune.getWhitelistCount(1)).to.be.equal(addresses1.slice(0, token1Supply).length + addresses2.slice(0, token2Supply).length);
     });
     it("WhitelistCount for Token 2 after Unpause", async function () {
         expect(await fortune.getWhitelistCount(2)).to.be.equal(addresses2.slice(0, token2Supply).length);
@@ -404,8 +400,8 @@ describe("Pause and Unpause", function () {
 });
 
 describe("Minting", function () {
-    token1Supply=2;
-    token2Supply=2;
+    token1Supply = 2;
+    token2Supply = 2;
     it("FAIL: Mint Token ID 1 not possible for non whitelisted address", async function () {
         expect(await fortune.mintAll(addresses3[0], {value: ethers.utils.parseEther(mintPriceEther)})).to.not.equal("");
     });
@@ -499,8 +495,8 @@ describe("Minting", function () {
 });
 
 describe("Withdraw Fund", function () {
-    token1Supply=2;
-    token2Supply=2;
+    token1Supply = 2;
+    token2Supply = 2;
     it("check if contract balance is 0 before minting.", async function () {
         expect(await fortune.contractBalance()).to.equal(0);
     });
