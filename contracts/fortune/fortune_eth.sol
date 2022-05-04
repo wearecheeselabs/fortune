@@ -15,22 +15,31 @@ contract Fortune is Pausable, ERC1155Burnable {
     address public treasurer;
     address public owner;
 
-    //    uint256[] supplies = [4000, 250];
-    uint256[] supplies = [9, 4];
-    uint256[] minted = [0, 0];
-    uint256[] rates = [.001 ether, 0 ether];
-    uint256[] WhitelistCount = [0, 0];
+    //    //    uint256[] supplies = [4000, 250];
+    //    uint256[] supplies = [9, 4];
+    //    uint256[] minted = [0, 0];
+    //    uint256[] rates = [.001 ether, 0 ether];
+    //    uint256[] whitelistCount = [0, 0];
+
+    mapping(uint256 => uint256) public supplies; // tokenId => supply value
+    mapping(uint256 => uint256) public minted; // tokenId => minted amount
+    mapping(uint256 => uint256) private rates; // tokenId => rate value
+    mapping(uint256 => uint256) private whitelistCount;
 
     mapping(uint256 => string) public tokenURI;
     mapping(address => uint256) public whitelist;
-
-    //    event Log(string msg, address _id, uint count, uint addressvalue);
 
     constructor() ERC1155("") {
         name = name;
         symbol = symbol;
         treasurer = msg.sender;
         owner = msg.sender;
+
+        supplies[1] = 9;
+        supplies[2] = 4;
+
+        rates[1] = .001 ether;
+        rates[2] = 0 ether;
     }
 
     function setURI(uint256 _id, string memory _uri) external {
@@ -69,10 +78,10 @@ contract Fortune is Pausable, ERC1155Burnable {
         owner = _owner;
     }
 
-    function mintAll(address _to) external payable  {
+    function mintAll(address _to) external payable {
         whenNotPaused();
         onlyWhitelistAddress(_to);
-        require(msg.value >= rates[0], "Not enough ether sent");
+        require(msg.value >= rates[1], "Not enough ether sent");
 
         uint256 _id = isWhitelisted(_to);
         mint(_to, _id);
@@ -80,90 +89,93 @@ contract Fortune is Pausable, ERC1155Burnable {
         if (_id != 1) {
             mint(_to, 1);
         }
-        //        _RemoveWhitelist(_to, _id);
         whitelist[_to] = 99;
-        //remove whitelist for both ids 1 and 2.
     }
 
-    function mint(address _to, uint256 _id) internal  {
-        whenNotPaused();
+    function mint(address _to, uint256 _id) internal {
+//        whenNotPaused();
         onlyWhitelistAddress(_to);
-        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+        validTokenId(_id);
 
-        require(minted[_id - 1] + 1 <= supplies[_id - 1], "Not enough supply");
+        require(minted[_id] + 1 <= supplies[_id], "Not enough supply");
         _mint(_to, _id, 1, "");
 
-        minted[_id - 1]++;
+        minted[_id]++;
     }
 
     function burn(uint256 _id, uint256 _amount) external {
+        whenNotPaused();
+        onlyTokenOwner(_id);
         _burn(msg.sender, _id, _amount);
     }
 
     function burnBatch(uint256[] memory _ids, uint256[] memory _amounts)
-        external
+    external
     {
+        whenNotPaused();
+        for (uint256 i = 0; i < _ids.length; i++) {
+            onlyTokenOwner(_ids[i]);
+        }
         _burnBatch(msg.sender, _ids, _amounts);
     }
 
-    function burnForMint(
-        address _from,
-        uint256[] memory _burnIds,
-        uint256[] memory _burnAmounts,
-        uint256[] memory _mintIds,
-        uint256[] memory _mintAmounts
-    ) external {
-        onlyOwner();
-        _burnBatch(_from, _burnIds, _burnAmounts);
-        _mintBatch(_from, _mintIds, _mintAmounts, "");
-    }
+    //    function burnForMint(
+    //        address _from,
+    //        uint256[] memory _burnIds,
+    //        uint256[] memory _burnAmounts,
+    //        uint256[] memory _mintIds,
+    //        uint256[] memory _mintAmounts
+    //    ) external {
+    //        onlyOwner();
+    //        _burnBatch(_from, _burnIds, _burnAmounts);
+    //        _mintBatch(_from, _mintIds, _mintAmounts, "");
+    //    }
 
     function uri(uint256 _id) public view override returns (string memory) {
         return tokenURI[_id];
     }
 
-    function _beforeTokenTransfer(
-        address operator,
-        address from,
-        address to,
-        uint256[] memory ids,
-        uint256[] memory amounts,
-        bytes memory data
-    ) internal override(ERC1155)  {
-        whenNotPaused();
-        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-    }
+    //    function _beforeTokenTransfer(
+    //        address operator,
+    //        address from,
+    //        address to,
+    //        uint256[] memory ids,
+    //        uint256[] memory amounts,
+    //        bytes memory data
+    //    ) internal override(ERC1155) {
+    //        whenNotPaused();
+    //        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    //    }
 
     function batchWhitelistAddress(address[] memory _addresses, uint256 _id)
-        external
+    external
     {
         onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
-            // emit Log("in for loop", _addresses[i], _count, whitelist[_addresses[i]]);
             if (whitelist[_addresses[i]] == 0) {
                 whitelist[_addresses[i]] = _id;
-                //                emit Log("batchWhitelistAddress", _addresses[i], WhitelistCount[_id - 1]+1, supplies[_id - 1]);
                 require(
-                    WhitelistCount[_id - 1] + 1 <= supplies[_id - 1],
+                    whitelistCount[_id] + 1 <= supplies[_id],
                     "Exceed maxSupply"
                 );
-                WhitelistCount[_id - 1]++;
+                whitelistCount[_id]++;
                 if (_id != 1) {
                     require(
-                        WhitelistCount[0] + 1 <= supplies[0],
+                        whitelistCount[1] + 1 <= supplies[1],
                         "Exceed maxSupply"
                     );
-                    WhitelistCount[0]++;
+                    whitelistCount[1]++;
                 }
             }
         }
     }
 
     function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
-        external
+    external
     {
-        onlyOwner();
+//        onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
@@ -172,19 +184,14 @@ contract Fortune is Pausable, ERC1155Burnable {
 
     function _RemoveWhitelist(address _address, uint256 _id) internal {
         onlyOwner();
-        //        if (whitelist[_address] != 0 && whitelist[_address] != 99) {
         if (whitelist[_address] == _id) {
             if (_id == 1) {
                 whitelist[_address] = 0;
             } else {
                 whitelist[_address] = 1;
             }
-            WhitelistCount[_id - 1]--;
-            //            WhitelistCount[0]--;
+            whitelistCount[_id]--;
         }
-        //        else {
-        //            emit Log("Adress is not already whitelisted", _address, WhitelistCount[_id - 1], whitelist[_address]);
-        //        }
     }
 
     function isWhitelisted(address _address) public view returns (uint256) {
@@ -197,15 +204,15 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function getWhitelistCount(uint256 _id) public view returns (uint256) {
-        return WhitelistCount[_id - 1];
+        return whitelistCount[_id];
     }
 
     function getMintedCount(uint256 _id) public view returns (uint256) {
-        return minted[_id - 1];
+        return minted[_id];
     }
 
     function getMaxSupply(uint256 _id) public view returns (uint256) {
-        return supplies[_id - 1];
+        return supplies[_id];
     }
 
     function onlyOwner() internal view {
@@ -227,7 +234,16 @@ contract Fortune is Pausable, ERC1155Burnable {
         );
     }
 
+    //    function validTokenId(uint256 _id) internal view {
+    //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+    //    }
     function validTokenId(uint256 _id) internal view {
-        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+        //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+        require(supplies[_id] != 0, "Token doesn't exist");
+    }
+
+    function onlyTokenOwner(uint256 _id) internal view {
+        require(balanceOf(msg.sender, _id) != 0, "You are not the owner of this NFT.");
     }
 }
+
