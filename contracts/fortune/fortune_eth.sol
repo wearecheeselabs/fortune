@@ -28,6 +28,8 @@ contract Fortune is Pausable, ERC1155Burnable {
 
     mapping(uint256 => string) public tokenURI;
     mapping(address => uint256) public whitelist;
+    //  Change the whitelist mapping to this
+    // mapping(address => mapping(uint256=> bool)) public whitelist;
 
     constructor() ERC1155("") {
         name = name;
@@ -60,11 +62,15 @@ contract Fortune is Pausable, ERC1155Burnable {
 
     function withdrawAll() external {
         onlyTreasurer();
-        payable(treasurer).transfer(address(this).balance);
+        _withdraw(address(this).balance);
     }
 
     function withdrawPart(uint256 amount) external {
         onlyTreasurer();
+        _withdraw(amount);
+    }
+
+    function _withdraw(uint256 amount) private {
         payable(treasurer).transfer(amount);
     }
 
@@ -93,9 +99,9 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function mint(address _to, uint256 _id) internal {
-//        whenNotPaused();
+        //        whenNotPaused();
         onlyWhitelistAddress(_to);
-//        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
+        //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
         validTokenId(_id);
 
         require(minted[_id] + 1 <= supplies[_id], "Not enough supply");
@@ -104,6 +110,7 @@ contract Fortune is Pausable, ERC1155Burnable {
         minted[_id]++;
     }
 
+
     function burn(uint256 _id, uint256 _amount) external {
         whenNotPaused();
         onlyTokenOwner(_id);
@@ -111,7 +118,7 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function burnBatch(uint256[] memory _ids, uint256[] memory _amounts)
-    external
+        external
     {
         whenNotPaused();
         for (uint256 i = 0; i < _ids.length; i++) {
@@ -149,11 +156,20 @@ contract Fortune is Pausable, ERC1155Burnable {
     //    }
 
     function batchWhitelistAddress(address[] memory _addresses, uint256 _id)
-    external
+        external
     {
         onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
+            // if(!whitelist[_address][_id]){
+                // require(
+                //     whitelistCount[_id] + 1 <= supplies[_id],
+                //     "Exceed maxSupply"
+                // );
+                // whitelist[_address][_id] =true;
+                // whitelistCount[_id]++;
+            // }
+            // 
             if (whitelist[_addresses[i]] == 0) {
                 whitelist[_addresses[i]] = _id;
                 require(
@@ -173,9 +189,10 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
-    external
+        external
     {
-//        onlyOwner();
+        // Uncomment the only owner protection
+        //        onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
@@ -184,6 +201,9 @@ contract Fortune is Pausable, ERC1155Burnable {
 
     function _RemoveWhitelist(address _address, uint256 _id) internal {
         onlyOwner();
+        // if(whitelist[_address][_id])
+            // whitelist[_address][_id] = false;
+            // very efficient and gas saving compared to what you currently have
         if (whitelist[_address] == _id) {
             if (_id == 1) {
                 whitelist[_address] = 0;
@@ -195,11 +215,11 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function isWhitelisted(address _address) public view returns (uint256) {
-        return whitelist[_address];
+        return whitelist[_address]; // whitelist[_address][_id] 
     }
 
     function contractBalance() public view returns (uint256) {
-        onlyOwner();
+        onlyOwner(); // this is useless
         return address(this).balance;
     }
 
@@ -243,7 +263,9 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function onlyTokenOwner(uint256 _id) internal view {
-        require(balanceOf(msg.sender, _id) != 0, "You are not the owner of this NFT.");
+        require(
+            balanceOf(msg.sender, _id) != 0,
+            "You are not the owner of this NFT."
+        );
     }
 }
-
