@@ -9,6 +9,14 @@ pragma solidity ^0.8.0;
 import "../security/Pausable.sol";
 import "../tokens/ERC1155/ERC1155Burnable.sol";
 import "../tokens/ERC2981/ERC2981.sol";
+import "../common/ContentMixin.sol";
+import "../common/NativeMetaTransaction.sol";
+
+contract OwnableDelegateProxy { }
+
+contract ProxyRegistry {
+    mapping(address => OwnableDelegateProxy) public proxies;
+}
 
 contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     string public name = "Fortune Treasure Hunting";
@@ -27,11 +35,14 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     //  Change the whitelist mapping to this
     // mapping(address => mapping(uint256=> bool)) public whitelist;
 
-    constructor() ERC1155("") {
+    address proxyRegistryAddress;
+
+    constructor(address _proxyRegistryAddress) ERC1155("") {
         name = name;
         symbol = symbol;
         treasurer = msg.sender;
         owner = msg.sender;
+        proxyRegistryAddress = _proxyRegistryAddress;
 
         supplies[1] = 9;
         supplies[2] = 4;
@@ -293,5 +304,20 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+    /**
+   * Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-free listings.
+   */
+    function isApprovedForAll(
+        address _owner,
+        address _operator
+    ) override public view returns (bool isOperator) {
+        // Whitelist OpenSea proxy contract for easy trading.
+        ProxyRegistry proxyRegistry = ProxyRegistry(proxyRegistryAddress);
+        if (address(proxyRegistry.proxies(_owner)) == _operator) {
+            return true;
+        }
+
+        return ERC1155.isApprovedForAll(_owner, _operator);
     }
 }
