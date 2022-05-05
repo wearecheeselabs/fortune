@@ -235,8 +235,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     }
 
     function contractBalance() public view returns (uint256) {
-        onlyOwner();
-        // this is useless
+        // this is useless: onlyOwner(); removed.
         return address(this).balance;
     }
 
