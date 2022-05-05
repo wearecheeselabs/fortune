@@ -8,18 +8,14 @@ pragma solidity ^0.8.0;
 
 import "../security/Pausable.sol";
 import "../tokens/ERC1155/ERC1155Burnable.sol";
+import "../tokens/ERC2981/ERC2981.sol";
 
-contract Fortune is Pausable, ERC1155Burnable {
+contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     string public name = "Fortune Treasure Hunting";
     string public symbol = "FORT";
     address public treasurer;
     address public owner;
-
-    //    //    uint256[] supplies = [4000, 250];
-    //    uint256[] supplies = [9, 4];
-    //    uint256[] minted = [0, 0];
-    //    uint256[] rates = [.001 ether, 0 ether];
-    //    uint256[] whitelistCount = [0, 0];
+    uint96 public royaltyFee = 1000; // 10%
 
     mapping(uint256 => uint256) public supplies; // tokenId => supply value
     mapping(uint256 => uint256) public minted; // tokenId => minted amount
@@ -42,6 +38,7 @@ contract Fortune is Pausable, ERC1155Burnable {
 
         rates[1] = .001 ether;
         rates[2] = 0 ether;
+        _setDefaultRoyalty(treasurer, royaltyFee);
     }
 
     function setURI(uint256 _id, string memory _uri) external {
@@ -58,6 +55,13 @@ contract Fortune is Pausable, ERC1155Burnable {
     function unpause() public {
         onlyOwner();
         _unpause();
+    }
+
+    function setDefaultRoyalty(address receiver, uint96 feeNumerator)
+    external
+    {
+        onlyOwner();
+        _setDefaultRoyalty(receiver, feeNumerator);
     }
 
     function withdrawAll() external {
@@ -118,7 +122,7 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function burnBatch(uint256[] memory _ids, uint256[] memory _amounts)
-        external
+    external
     {
         whenNotPaused();
         for (uint256 i = 0; i < _ids.length; i++) {
@@ -156,18 +160,18 @@ contract Fortune is Pausable, ERC1155Burnable {
     //    }
 
     function batchWhitelistAddress(address[] memory _addresses, uint256 _id)
-        external
+    external
     {
         onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
             // if(!whitelist[_address][_id]){
-                // require(
-                //     whitelistCount[_id] + 1 <= supplies[_id],
-                //     "Exceed maxSupply"
-                // );
-                // whitelist[_address][_id] =true;
-                // whitelistCount[_id]++;
+            // require(
+            //     whitelistCount[_id] + 1 <= supplies[_id],
+            //     "Exceed maxSupply"
+            // );
+            // whitelist[_address][_id] =true;
+            // whitelistCount[_id]++;
             // }
             // 
             if (whitelist[_addresses[i]] == 0) {
@@ -189,7 +193,7 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
-        external
+    external
     {
         // Uncomment the only owner protection
         //        onlyOwner();
@@ -202,8 +206,8 @@ contract Fortune is Pausable, ERC1155Burnable {
     function _RemoveWhitelist(address _address, uint256 _id) internal {
         onlyOwner();
         // if(whitelist[_address][_id])
-            // whitelist[_address][_id] = false;
-            // very efficient and gas saving compared to what you currently have
+        // whitelist[_address][_id] = false;
+        // very efficient and gas saving compared to what you currently have
         if (whitelist[_address] == _id) {
             if (_id == 1) {
                 whitelist[_address] = 0;
@@ -215,11 +219,13 @@ contract Fortune is Pausable, ERC1155Burnable {
     }
 
     function isWhitelisted(address _address) public view returns (uint256) {
-        return whitelist[_address]; // whitelist[_address][_id] 
+        return whitelist[_address];
+        // whitelist[_address][_id]
     }
 
     function contractBalance() public view returns (uint256) {
-        onlyOwner(); // this is useless
+        onlyOwner();
+        // this is useless
         return address(this).balance;
     }
 
@@ -267,5 +273,25 @@ contract Fortune is Pausable, ERC1155Burnable {
             balanceOf(msg.sender, _id) != 0,
             "You are not the owner of this NFT."
         );
+    }
+    // The following functions are overrides required by Solidity.
+    function _beforeTokenTransfer(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) internal override(ERC1155) {
+        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
+    }
+
+    function supportsInterface(bytes4 interfaceId)
+    public
+    view
+    override(ERC1155, ERC2981)
+    returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 }
