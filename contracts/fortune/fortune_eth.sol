@@ -206,8 +206,8 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
     external
     {
-        // Uncomment the only owner protection
-        //        onlyOwner();
+        // Uncomment the only owner protection:Done
+        onlyOwner();
         validTokenId(_id);
         for (uint256 i = 0; i < _addresses.length; i++) {
             _RemoveWhitelist(_addresses[i], _id);
@@ -215,7 +215,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     }
 
     function _RemoveWhitelist(address _address, uint256 _id) internal {
-        onlyOwner();
+//        onlyOwner();
         // if(whitelist[_address][_id])
         // whitelist[_address][_id] = false;
         // very efficient and gas saving compared to what you currently have
