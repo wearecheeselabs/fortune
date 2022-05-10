@@ -97,11 +97,24 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         owner = _owner;
     }
 
+/// @dev The StructHash of the mint function, 
+/// used for verifying the off-chaiin signature
     bytes32 MINT_STRUCT =
         keccak256(
             "MINT(bytes whitelistData,address to,uint256 tokenId,uint256 amount,bool mintAirdrop,uint256 airdropId,uint256 nonce)"
         );
 
+
+    /// @dev Minting tokens to the address `to` with the tokenId 
+    /// `tokenId` and the amount `amount`.
+    /// @param whitelistData the bytes value of the userdata
+    /// @param to the address to transfer the minted token to
+    /// @param tokenId the tokenId to be minted
+    /// @param amount the amount of tokenId to be minted
+    /// @param mintAirdrop a bool value to determine if to mint airdrop
+    /// @param airdropId the airdropId to be minted
+    /// @param nonce the nonce value for this signature to prevent replay attack
+    /// @param signature the signature value to be verified before minting
     function mintWithSig(
         bytes calldata whitelistData,
         address to,
@@ -129,6 +142,12 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         if (mintAirdrop) _mint(to, airdropId, 1, "");
     }
 
+/// @dev   Minting tokens to the address `to` 
+/// with the tokenId `tokenId` and the amount `amount`.
+/// @param to the address to send minted token to
+/// @param tokenId the tokenId to mint
+/// @param amount the amount of token of tokenId to be minted
+
     function mint(
         address to,
         uint256 tokenId,
@@ -141,6 +160,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         whenNotPaused();
         _mint(to, tokenId, amount, "");
     }
+
 
     function verifyMint(
         bytes calldata whitelistData,
@@ -195,7 +215,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
     function burn(address account, uint256 _id, uint256 _amount) public override {
         whenNotPaused();
         // onlyTokenOwnerAndCreator(_id);
-        _burn(account, _id, _amount);
+        super.burn(account, _id, _amount);
     }
 
     function burnBatch(address account,uint256[] calldata _ids, uint256[] calldata _amounts)
@@ -205,7 +225,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         // for (uint256 i = 0; i < _ids.length; i++) {
         //     onlyTokenOwnerAndCreator(_ids[i]);
         // }
-        _burnBatch(account, _ids, _amounts);
+        super.burnBatch(account, _ids, _amounts);
     }
 
     function uri(uint256 _id) public view override returns (string memory) {
