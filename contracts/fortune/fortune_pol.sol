@@ -121,7 +121,6 @@ contract FortunePol is Pausable, ERC1155Burnable,ERC2981 {
     }
     
 
-   
     function onlyOwner() internal view {
         require(
             msg.sender == owner,
