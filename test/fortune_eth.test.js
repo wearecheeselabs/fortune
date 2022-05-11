@@ -24,8 +24,8 @@ const types = {
     { name: "to", type: "address" },
     { name: "tokenId", type: "uint256" },
     { name: "amount", type: "uint256" },
-    { name: "mintAirdrop", type: "bool" },
-    { name: "airdropId", type: "uint256" },
+    // { name: "mintAirdrop", type: "bool" },
+    // { name: "airdropId", type: "uint256" },
     { name: "nonce", type: "uint256" },
   ],
 };
@@ -53,13 +53,20 @@ describe("Fortune Nft", () => {
       expect(await fortuneNft.treasurer()).to.equal(wallet.address);
     });
     it("initialize tokenId", async () => {
-      await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
+      await init(fortuneNft, 1, 20, expandToPowers(1, 10), 100, "hello world");
       expect(await fortuneNft.uri(1)).to.equal("hello world");
       expect(await fortuneNft.rates(1)).to.equal(expandToPowers(1, 10));
       expect(await fortuneNft.supplies(1)).to.equal(20);
       expect(await fortuneNft.initializedId(1)).to.be.true;
-      expect((await fortuneNft.royaltyData(1))[1]).to.equal(1000);
+      expect((await fortuneNft.royaltyData(1))[1]).to.equal(100);
       expect((await fortuneNft.royaltyData(1))[0]).to.equal(wallet.address);
+
+      expect(
+        (await fortuneNft.royaltyInfo(1, expandToPowers(1, 12)))[1]
+      ).to.equal(expandToPowers(1, 10));
+      expect(
+        (await fortuneNft.royaltyInfo(1, expandToPowers(1, 12)))[0]
+      ).to.equal(wallet.address);
     });
     it("mint", async () => {
       await expect(fortuneNft.mint(other0.address, 1, 20)).to.revertedWith(
@@ -78,8 +85,8 @@ describe("Fortune Nft", () => {
         to: other0.address,
         tokenId: 1,
         amount: 1,
-        mintAirdrop: true,
-        airdropId: 2,
+        // mintAirdrop: true,
+        // airdropId: 2,
         nonce: 1,
       };
 
@@ -90,24 +97,24 @@ describe("Fortune Nft", () => {
       );
       await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
       await expect(
-        fortuneNft
-          .connect(other0)
-          .mintWithSig(
-            value.whitelistData,
-            value.to,
-            value.tokenId,
-            value.amount,
-            value.mintAirdrop,
-            value.airdropId,
-            value.nonce,
-            sig,
-            {
-              value: expandToPowers(1, 10),
-            }
-          )
+        fortuneNft.connect(other0).mintWithSig(
+          value.whitelistData,
+          value.to,
+          value.tokenId,
+          value.amount,
+          // value.mintAirdrop,
+          // value.airdropId,
+          value.nonce,
+          sig,
+          {
+            value: expandToPowers(1, 10),
+          }
+        )
       ).to.emit(fortuneNft, "TransferSingle");
       expect(await fortuneNft.balanceOf(other0.address, 1)).to.equal(1);
-      expect(await fortuneNft.balanceOf(other0.address, 2)).to.equal(1);
+      expect(await fortuneNft.contractBalance()).to.equal(
+        expandToPowers(1, 10)
+      );
     });
     it("withdraw", async () => {
       const value = {
@@ -115,8 +122,8 @@ describe("Fortune Nft", () => {
         to: other0.address,
         tokenId: 1,
         amount: 1,
-        mintAirdrop: true,
-        airdropId: 2,
+        // mintAirdrop: true,
+        // airdropId: 2,
         nonce: 1,
       };
 
@@ -127,37 +134,35 @@ describe("Fortune Nft", () => {
       );
       await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
       await expect(
-        fortuneNft
-          .connect(other0)
-          .mintWithSig(
-            value.whitelistData,
-            value.to,
-            value.tokenId,
-            value.amount,
-            value.mintAirdrop,
-            value.airdropId,
-            value.nonce,
-            sig,
-            {
-              value: expandToPowers(1, 10),
-            }
-          )
+        fortuneNft.connect(other0).mintWithSig(
+          value.whitelistData,
+          value.to,
+          value.tokenId,
+          value.amount,
+          // value.mintAirdrop,
+          // value.airdropId,
+          value.nonce,
+          sig,
+          {
+            value: expandToPowers(1, 10),
+          }
+        )
       ).to.emit(fortuneNft, "TransferSingle");
-      await expect(
-        fortuneNft.connect(other0).withdraw(expandToPowers(1, 10))
-      ).to.be.revertedWith("not treasurer");
+
       await expect(fortuneNft.withdraw(expandToPowers(1, 10)))
         .to.emit(fortuneNft, "Withdraw")
         .withArgs(wallet.address, expandToPowers(1, 10));
+      expect(await fortuneNft.contractBalance()).to.equal(0);
     });
     it("setUri", async () => {
       await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
       await expect(
-        fortuneNft.connect(other0).setURI(1, "about love")
+        fortuneNft.connect(other0).setURI(1, "about fortune")
       ).to.revertedWith("not owner");
-      await expect(fortuneNft.setURI(1, "about love"))
+      await expect(fortuneNft.setURI(1, "about fortune"))
         .to.emit(fortuneNft, "URI")
-        .withArgs("about love", 1);
+        .withArgs("about fortune", 1);
+      expect(await fortuneNft.uri(1)).to.equal("about fortune");
     });
 
     it("pause and unpause", async () => {
@@ -197,6 +202,13 @@ describe("Fortune Nft", () => {
       await expect(
         fortuneNft.connect(other0).burnBatch(other0.address, [2], [2])
       ).to.emit(fortuneNft, "TransferBatch");
+    });
+    it("support interfaces", async () => {
+      const ERC2981MagicValue = "0x2a55205a";
+      const ERC1155MetadataMagicValue = "0x0e89341c";
+      expect(await fortuneNft.supportsInterface(ERC2981MagicValue)).to.be.true;
+      expect(await fortuneNft.supportsInterface(ERC1155MetadataMagicValue)).to
+        .be.true;
     });
   });
 });
