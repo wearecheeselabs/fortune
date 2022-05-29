@@ -2,12 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "../security/Ownable.sol";
-import "../tokens/ERC1155/ERC1155.sol";
+import "../tokens/ERC1155/ERC1155Burnable.sol";
 import "../common/ERC2981.sol";
 
-contract FortunePol is Ownable, ERC1155, ERC2981 {
-    string public constant name = "Fortune Treasure Hunting";
-    string public constant symbol = "FORT";
+contract FortuneGenesis is Ownable, ERC1155Burnable, ERC2981 {
+    string public constant name = "Fortune Genesis Pack";
+    string public constant symbol = "Genesis NFT";
 
     mapping(uint256 => uint256) public supplies; // tokenId => supply value
     mapping(uint256 => uint256) public minted; // tokenId => minted amount
@@ -24,19 +24,6 @@ contract FortunePol is Ownable, ERC1155, ERC2981 {
         tokenURI[_id] = _uri;
         emit URI(_uri, _id);
     }
-
-
-    
-    function onlyMinter(address account) private view {
-        require(
-            isMinter[account] ,
-            "only minter"
-        ); 
-    }
-
-   
-
-
 
     function setRoyalty(uint256 tokenId, uint96 royaltyFee) external {
         onlyOwner();
@@ -67,11 +54,15 @@ contract FortunePol is Ownable, ERC1155, ERC2981 {
         emit SetMinter(_minter, isminter);
     }
 
+    function onlyMinter(address account) private view {
+        require(isMinter[account], "only minter");
+    }
+
     function burn(
         address account,
         uint256 _id,
         uint256 _amount
-    ) external  {
+    ) public override {
         onlyMinter(msg.sender);
         ERC1155._burn(account, _id, _amount);
     }
@@ -80,7 +71,7 @@ contract FortunePol is Ownable, ERC1155, ERC2981 {
         address account,
         uint256[] memory _ids,
         uint256[] memory _amounts
-    ) external  {
+    ) public override {
         onlyMinter(msg.sender);
         ERC1155._burnBatch(account, _ids, _amounts);
     }
@@ -99,6 +90,4 @@ contract FortunePol is Ownable, ERC1155, ERC2981 {
             ERC2981.supportsInterface(interfaceId) ||
             ERC1155.supportsInterface(interfaceId);
     }
-
-    
 }

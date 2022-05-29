@@ -16,6 +16,7 @@ describe("Fortune Nft Polygon", () => {
     await Promise.all([
       fortuneNft.deployed(),
       fortuneNft.setMinter(other1.address, true),
+      fortuneNft.setMinter(wallet.address, true),
     ]);
   });
 
@@ -36,7 +37,7 @@ describe("Fortune Nft Polygon", () => {
     it("setUri", async () => {
       await expect(
         fortuneNft.connect(other0).setURI(1, "about fortune")
-      ).to.revertedWith("only owner");
+      ).to.revertedWith("caller is not the owner");
       await expect(fortuneNft.setURI(1, "about fortune"))
         .to.emit(fortuneNft, "URI")
         .withArgs("about fortune", 1);
@@ -46,7 +47,7 @@ describe("Fortune Nft Polygon", () => {
     it("Set Royalty", async () => {
       await expect(
         fortuneNft.connect(other0).setRoyalty(1, 100)
-      ).to.revertedWith("only owner");
+      ).to.revertedWith("caller is not the owner");
       await fortuneNft.setRoyalty(1, 100);
       expect((await fortuneNft.royaltyData(1))[1]).to.equal(100);
       expect((await fortuneNft.royaltyData(1))[0]).to.equal(wallet.address);
@@ -58,42 +59,19 @@ describe("Fortune Nft Polygon", () => {
       ).to.equal(wallet.address);
     });
 
-    it("pause and unpause", async () => {
-      await expect(fortuneNft.connect(other0).pause()).to.revertedWith(
-        "only owner"
-      );
-      await expect(fortuneNft.connect(wallet).pause()).to.emit(
-        fortuneNft,
-        "Paused"
-      );
-      await expect(fortuneNft.connect(other0).unpause()).to.revertedWith(
-        "only owner"
-      );
-      await expect(fortuneNft.connect(wallet).unpause()).to.emit(
-        fortuneNft,
-        "Unpaused"
-      );
-    });
-
-    it("changeOwner", async () => {
-      await fortuneNft.changeOwner(other0.address);
-      expect(await fortuneNft.owner()).to.equal(other0.address);
-    });
-    it("changeTreasurer", async () => {
-      await fortuneNft.changeTreasurer(other0.address);
-      expect(await fortuneNft.treasurer()).to.equal(other0.address);
-    });
     it("mint and burn", async () => {
       await Promise.all([
         fortuneNft.mint(other0.address, 1, 20),
         fortuneNft.mint(other0.address, 2, 20),
       ]);
-      await expect(
-        fortuneNft.connect(other0).burn(other0.address, 1, 2)
-      ).to.emit(fortuneNft, "TransferSingle");
-      await expect(
-        fortuneNft.connect(other0).burnBatch(other0.address, [2], [2])
-      ).to.emit(fortuneNft, "TransferBatch");
+      await expect(fortuneNft.burn(other0.address, 1, 2)).to.emit(
+        fortuneNft,
+        "TransferSingle"
+      );
+      await expect(fortuneNft.burnBatch(other0.address, [2], [2])).to.emit(
+        fortuneNft,
+        "TransferBatch"
+      );
     });
     it("support interfaces", async () => {
       const ERC2981MagicValue = "0x2a55205a";

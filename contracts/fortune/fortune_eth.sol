@@ -6,16 +6,14 @@
 
 pragma solidity ^0.8.0;
 
-import "../security/Pausable.sol";
-import "../tokens/ERC1155/ERC1155Burnable.sol";
+import "../security/Ownable.sol";
+import "../tokens/ERC1155/ERC1155.sol";
 import "../common/ERC2981.sol";
 import "../libraries/SignatureHelper.sol";
 
-contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
+contract Fortune is Ownable, ERC1155, ERC2981 {
     string public constant name = "Fortune Treasure Hunting";
     string public constant symbol = "FORT";
-    address public treasurer;
-    address public owner;
 
     bytes32 private immutable DOMAIN_SEPARATOR;
 
@@ -44,7 +42,6 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
             )
         );
         isMinter[_owner] = true;
-        treasurer = owner = _owner;
     }
 
     function initToken(
@@ -58,9 +55,19 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         rates[tokenId] = etherFees;
         supplies[tokenId] = supply;
         initializedId[tokenId] = true;
-        _setTokenRoyalty(tokenId, treasurer, royaltyFee);
+        _setTokenRoyalty(tokenId, feeReceiver(), royaltyFee);
         tokenURI[tokenId] = _uri;
         emit URI(_uri, tokenId);
+    }
+
+    function setToken(
+        uint256 tokenId,
+        uint256 supply,
+        uint256 etherFees
+    ) external {
+        onlyOwner();
+        rates[tokenId] = etherFees;
+        supplies[tokenId] = supply;
     }
 
     function setURI(uint256 _id, string calldata _uri) external {
@@ -69,42 +76,27 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         emit URI(_uri, _id);
     }
 
-    function pause() external {
-        onlyOwner();
-        _pause();
-    }
-
-    function unpause() external {
-        onlyOwner();
-        _unpause();
-    }
+ 
 
     event Withdraw(address to, uint256 value);
 
     function withdraw(uint256 amount) external {
-        payable(treasurer).transfer(amount);
-        emit Withdraw(treasurer, amount);
+        payable(feeReceiver()).transfer(amount);
+        emit Withdraw(feeReceiver(), amount);
     }
 
-    function changeTreasurer(address _treasurer) external {
-        onlyOwner();
-        treasurer = _treasurer;
-    }
+   
 
-    function changeOwner(address _owner) external {
-        onlyOwner();
-        owner = _owner;
-    }
+  
 
-/// @dev The StructHash of the mint function, 
-/// used for verifying the off-chaiin signature
+    /// @dev The StructHash of the mint function,
+    /// used for verifying the off-chaiin signature
     bytes32 MINT_STRUCT =
         keccak256(
             "MINT(bytes whitelistData,address to,uint256 tokenId,uint256 amount,uint256 nonce)"
         );
 
-
-    /// @dev Minting tokens to the address `to` with the tokenId 
+    /// @dev Minting tokens to the address `to` with the tokenId
     /// `tokenId` and the amount `amount`.
     /// @param whitelistData the bytes value of the userdata
     /// @param to the address to transfer the minted token to
@@ -122,7 +114,6 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         uint256 nonce,
         bytes calldata signature
     ) external payable {
-        whenNotPaused();
         verifyMint(
             whitelistData,
             to,
@@ -139,7 +130,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         // if (mintAirdrop) _mint(to, airdropId, 1, "");
     }
 
-    /// @dev   Minting tokens to the address `to` 
+    /// @dev   Minting tokens to the address `to`
     /// with the tokenId `tokenId` and the amount `amount`.
     /// @param to the address to send minted token to
     /// @param tokenId the tokenId to mint
@@ -154,10 +145,8 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
             isMinter[msg.sender] && initializedId[tokenId],
             "only minter or not initialized tokenId"
         );
-        whenNotPaused();
         _mint(to, tokenId, amount, "");
     }
-
 
     function verifyMint(
         bytes calldata whitelistData,
@@ -184,7 +173,7 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         require(
             !usedNonce[nonce] &&
                 SignatureHelper.verify(
-                    owner,
+                    owner(),
                     DOMAIN_SEPARATOR,
                     hashedStruct,
                     signature
@@ -209,20 +198,22 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         emit SetMinter(_minter, isminter);
     }
 
-    function burn(address account, uint256 _id, uint256 _amount) public override {
-        whenNotPaused();
-        // onlyTokenOwnerAndCreator(_id);
-        super.burn(account, _id, _amount);
+    function burn(
+        address account,
+        uint256 _id,
+        uint256 _amount
+    ) external {
+        onlyOwner();
+        ERC1155._burn(account, _id, _amount);
     }
 
-    function burnBatch(address account,uint256[] calldata _ids, uint256[] calldata _amounts)
-        public override
-    {
-        whenNotPaused();
-        // for (uint256 i = 0; i < _ids.length; i++) {
-        //     onlyTokenOwnerAndCreator(_ids[i]);
-        // }
-        super.burnBatch(account, _ids, _amounts);
+    function burnBatch(
+        address account,
+        uint256[] memory _ids,
+        uint256[] memory _amounts
+    ) external {
+        onlyOwner();
+        ERC1155._burnBatch(account, _ids, _amounts);
     }
 
     function uri(uint256 _id) public view override returns (string memory) {
@@ -244,8 +235,5 @@ contract Fortune is Pausable, ERC1155Burnable, ERC2981 {
         return address(this).balance;
     }
 
-    function onlyOwner() internal view {
-        require(msg.sender == owner, "not owner");
-    }
-
+    
 }

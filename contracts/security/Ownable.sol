@@ -5,62 +5,67 @@ pragma solidity ^0.8.0;
 import "../common/Context.sol";
 
 
+
 abstract contract Ownable is Context {
-    address private _owner;
+    uint256 public constant delay = 172_800; // delay for admin change
+    address private admin;
+    address private _feeReceiver;
+    address public pendingAdmin; // pending admin variable
+    uint256 public changeAdminDelay; // admin change delay variable
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event ChangeAdmin(address sender, address newOwner);
+    event RejectPendingAdmin(address sender, address newOwner);
+    event AcceptPendingAdmin(address sender, address newOwner);
 
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
+    function onlyOwner() internal view {
+        require(_msgSender() == admin, "caller is not the owner");
+    }
+
     constructor() {
-        _transferOwnership(_msgSender());
+        admin = _msgSender();
+        _feeReceiver = _msgSender();
     }
 
-    /**
-     * @dev Returns the address of the current owner.
-     */
-    function owner() public view virtual returns (address) {
-        return _owner;
-    }
-
-    /**
-     * @dev Throws if called by any account other than the owner.
-     */
-    function onlyOwner() internal view{
-        require(owner() == _msgSender(), "Ownable: caller is not the owner");
-        
-    }
-
-    /**
-     * @dev Leaves the contract without owner. It will not be possible to call
-     * `onlyOwner` functions anymore. Can only be called by the current owner.
-     *
-     * NOTE: Renouncing ownership will leave the contract without an owner,
-     * thereby removing any functionality that is only available to the owner.
-     */
-    function renounceOwnership() public virtual  {
+    function changeAdmin(address _admin) external {
         onlyOwner();
-        _transferOwnership(address(0));
+        pendingAdmin = _admin;
+        changeAdminDelay = block.timestamp + delay;
+        emit ChangeAdmin(_msgSender(), pendingAdmin);
     }
 
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Can only be called by the current owner.
-     */
-    function transferOwnership(address newOwner) public virtual {
+    function rejectPendingAdmin() external {
         onlyOwner();
-        require(newOwner != address(0), "Ownable: new owner is the zero address");
-        _transferOwnership(newOwner);
+        if (pendingAdmin != address(0)) {
+            pendingAdmin = address(0);
+            changeAdminDelay = 0;
+        }
+        emit RejectPendingAdmin(_msgSender(), pendingAdmin);
     }
 
-    /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
-     * Internal function without access restriction.
-     */
-    function _transferOwnership(address newOwner) internal virtual {
-        address oldOwner = _owner;
-        _owner = newOwner;
-        emit OwnershipTransferred(oldOwner, newOwner);
+    function owner() public view returns (address) {
+        return admin;
+    }
+
+    function feeReceiver() public view returns (address) {
+        return payable(_feeReceiver);
+    }
+
+    function setFeeReceiver(address feeReceiver_) external {
+        onlyOwner();
+        _feeReceiver = feeReceiver_;
+    }
+
+    function acceptPendingAdmin() external {
+        onlyOwner();
+        if (changeAdminDelay > 0 && pendingAdmin != address(0)) {
+            require(
+                block.timestamp > changeAdminDelay,
+                "owner apply too early"
+            );
+            admin = pendingAdmin;
+            changeAdminDelay = 0;
+            pendingAdmin = address(0);
+        }
+        emit AcceptPendingAdmin(_msgSender(), admin);
     }
 }

@@ -12,108 +12,114 @@ import "../tokens/ERC721/ERC721Votes.sol";
 import "../common/ERC2981.sol";
 import "../libraries/SignatureHelper.sol";
 
-contract FurtuneDao is
-    ERC721,
+contract FortuneDao is
     ERC2981,
     ERC721Enumerable,
     ERC721URIStorage,
     Ownable,
     ERC721Burnable,
-    EIP712,
     ERC721Votes
 {
-
     mapping(uint256 => bool) public usedNonce;
     mapping(uint256 => bool) public usedTokenId;
-    bytes32 private immutable DOMAIN_SEPARATOR;
 
-    bytes32 private constant DOMAIN_TYPEHASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
-        
+    uint256 public mintedCount;
+    uint96 public royaltyNumerator;
+    uint256 public mintFees;
+    uint256 public maxMint;
 
-    uint256 mintedCount;
-    address payable receiver;
-    uint96 numerator;
-    uint256 mintFees;
-    uint256  maxMint;
-
-    constructor(address payable _receiver, uint96 _numerator, uint256 _mintFees, uint256 _maxMint)
-        ERC721("Fortune Dao", "FDAO")
-        EIP712("Fortune Dao", "1.0.1")
-    {
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes("Fortune Dao")), // name
-                keccak256(bytes("1.0.1")), // version
-                block.chainid,
-                address(this)
-            )
-        );
-        receiver = _receiver;
-        numerator = _numerator;
+    constructor(
+        uint96 _numerator,
+        uint256 _mintFees,
+        uint256 _maxMint
+    ) ERC721("Fortune Dao", "FDAO") EIP712("Fortune Dao", "1.0.1") {
+        royaltyNumerator = _numerator;
         maxMint = _maxMint;
         mintFees = _mintFees;
     }
 
-
-    function setRoyltyReceiver(address payable _receiver, uint96 _numerator)
-        external
-    {
+    function setRoyltyNumerator(uint96 _numerator) external {
         onlyOwner();
-        receiver = _receiver;
-        numerator = _numerator;
+        royaltyNumerator = _numerator;
     }
 
-    function verifyValue(uint256 msgValue, uint256 reqValue)private pure{
+    function verifyValue(uint256 msgValue, uint256 reqValue) private pure {
         require(msgValue >= reqValue, "insuff value");
     }
-    function verifyNonce(uint256 _nonce)private {
-        require(!usedNonce[_nonce], 'used Nonce');
+
+    function verifyNonce(uint256 _nonce) private {
+        require(!usedNonce[_nonce], "used Nonce");
         usedNonce[_nonce] = true;
     }
 
-    function usedId(uint256 tokenId) private{
-        require(!usedTokenId[tokenId], 'used tokenId');
+    function usedId(uint256 tokenId) private {
+        require(!usedTokenId[tokenId], "used tokenId");
         usedTokenId[tokenId] = true;
     }
 
-    function handleMaxMint() private{
-        require(mintedCount < maxMint,"mint is over");
+    function handleMaxMint() private {
+        require(mintedCount < maxMint, "mint is over");
         mintedCount++;
     }
 
+    function checkBalance(address account) private view {
+        require(balanceOf(account) < 10, "balance can not exceed 10");
+    }
 
     function safeMint(
         address to,
         uint256 tokenId,
         string calldata uri
-    ) external payable{
+    ) external payable {
         handleMaxMint();
         verifyValue(msg.value, mintFees);
         usedId(tokenId);
-        _setTokenRoyalty(tokenId, receiver, numerator);
+        checkBalance(to);
+        _setTokenRoyalty(tokenId, feeReceiver(), royaltyNumerator);
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
     }
 
-    bytes32 private constant MINT_WITH_SIG = keccak256("MintWithSig(address to,uint256 tokenId,string uri,uint256 value)");
+    bytes32 private constant MINT_WITH_SIG =
+        keccak256(
+            "MintWithSig(address to,uint256 tokenId,string uri,uint256 value,uint256 nonce)"
+        );
 
     function mintWithSig(
         address to,
         uint256 tokenId,
         string calldata uri,
         uint256 value,
-        bytes calldata sig
-    )external payable{
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable {
         handleMaxMint();
         verifyValue(value, mintFees);
+        verifyNonce(nonce);
         usedId(tokenId);
-        bytes32 hashStruct = keccak256(abi.encode(MINT_WITH_SIG, to,tokenId, keccak256(bytes(uri)),value));
-        require(SignatureHelper.verify(owner(), DOMAIN_SEPARATOR, hashStruct, sig),"invalid mint params");
-        _setTokenRoyalty(tokenId, receiver, numerator);
+        checkBalance(to);
+
+        address signer = ECDSA.recover(
+            _hashTypedDataV4(
+                keccak256(
+                    abi.encode(
+                        MINT_WITH_SIG,
+                        to,
+                        tokenId,
+                        keccak256(bytes(uri)),
+                        value,
+                        nonce
+                    )
+                )
+            ),
+            v,
+            r,
+            s
+        );
+        require(owner() == signer, "signer not owner");
+        _setTokenRoyalty(tokenId, feeReceiver(), royaltyNumerator);
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, uri);
     }
@@ -159,7 +165,7 @@ contract FurtuneDao is
         returns (bool)
     {
         return
-            super.supportsInterface(interfaceId) ||
+            ERC721Enumerable.supportsInterface(interfaceId) ||
             ERC2981.supportsInterface(interfaceId);
     }
 }
