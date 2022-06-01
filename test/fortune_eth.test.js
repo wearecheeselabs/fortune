@@ -19,7 +19,7 @@ const domain = (verifyingContract) => ({
 });
 
 const types = {
-  MINT: [
+  MintWithSig: [
     { name: "whitelistData", type: "bytes" },
     { name: "to", type: "address" },
     { name: "tokenId", type: "uint256" },
@@ -38,7 +38,7 @@ describe("Fortune Nft", () => {
   beforeEach("Deploy", async () => {
     accounts = await ethers.getSigners();
     [wallet, other0, other1, other2] = accounts;
-    const FortuneNft = await ethers.getContractFactory("Fortune", wallet);
+    const FortuneNft = await ethers.getContractFactory("FortuneEAK", wallet);
     fortuneNft = await FortuneNft.deploy(wallet.address);
     await Promise.all([
       fortuneNft.deployed(),
@@ -95,6 +95,7 @@ describe("Fortune Nft", () => {
         types,
         value
       );
+      const { v, r, s } = ethers.utils.splitSignature(sig);
       await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
       await expect(
         fortuneNft.connect(other0).mintWithSig(
@@ -105,7 +106,9 @@ describe("Fortune Nft", () => {
           // value.mintAirdrop,
           // value.airdropId,
           value.nonce,
-          sig,
+          v,
+          r,
+          s,
           {
             value: expandToPowers(1, 10),
           }
@@ -132,6 +135,7 @@ describe("Fortune Nft", () => {
         types,
         value
       );
+      const { v, r, s } = ethers.utils.splitSignature(sig);
       await init(fortuneNft, 1, 20, expandToPowers(1, 10), 1000, "hello world");
       await expect(
         fortuneNft.connect(other0).mintWithSig(
@@ -142,7 +146,9 @@ describe("Fortune Nft", () => {
           // value.mintAirdrop,
           // value.airdropId,
           value.nonce,
-          sig,
+          v,
+          r,
+          s,
           {
             value: expandToPowers(1, 10),
           }

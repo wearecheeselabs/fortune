@@ -4,18 +4,18 @@ pragma solidity ^0.8.0;
 import "../security/Ownable.sol";
 import "../tokens/ERC1155/ERC1155Burnable.sol";
 import "../common/ERC2981.sol";
+import "../votes/EIP712.sol";
 
-contract FortuneGenesis is Ownable, ERC1155Burnable, ERC2981 {
+contract FortuneGenesis is Ownable, EIP712, ERC1155Burnable, ERC2981 {
     string public constant name = "Fortune Genesis Pack";
     string public constant symbol = "Genesis NFT";
 
-    mapping(uint256 => uint256) public supplies; // tokenId => supply value
-    mapping(uint256 => uint256) public minted; // tokenId => minted amount
+    mapping(uint256 => bool) public usedNonce; // nonce => bool used
 
     mapping(uint256 => string) private tokenURI;
     mapping(address => bool) public isMinter; // address => bool isMinter
 
-    constructor() ERC1155("") {
+    constructor() ERC1155("") EIP712(name, "1.0.1") {
         isMinter[msg.sender] = true;
     }
 
@@ -36,12 +36,35 @@ contract FortuneGenesis is Ownable, ERC1155Burnable, ERC2981 {
     /// @param tokenId the tokenId to mint
     /// @param amount the amount of token of tokenId to be minted
 
-    function mint(
+    function mint( 
         address to,
         uint256 tokenId,
         uint256 amount
     ) external {
         onlyMinter(msg.sender);
+        _mint(to, tokenId, amount, "");
+    }
+
+    bytes32 MINT_WITH_SIG =
+        keccak256(
+            "MintWithSig(address to,uint256 tokenId,uint256 amount,uint256 nonce)"
+        );
+
+    function mintWithSig(
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external {
+        bytes32 hashedStruct = keccak256(
+            abi.encode(MINT_WITH_SIG, to, tokenId, amount, nonce)
+        );
+        address signer = ECDSA.recover(_hashTypedDataV4(hashedStruct), v, r, s);
+        require(!usedNonce[nonce] && signer == owner(), "sig or nonce Err");
+        usedNonce[nonce] = true;
         _mint(to, tokenId, amount, "");
     }
 

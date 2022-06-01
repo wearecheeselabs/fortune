@@ -11,7 +11,7 @@ describe("Fortune Nft Polygon", () => {
   beforeEach("Deploy", async () => {
     accounts = await ethers.getSigners();
     [wallet, other0, other1, other2] = accounts;
-    const FortuneNft = await ethers.getContractFactory("FortunePol", wallet);
+    const FortuneNft = await ethers.getContractFactory("FortuneUkrain", wallet);
     fortuneNft = await FortuneNft.deploy();
     await Promise.all([
       fortuneNft.deployed(),

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
+
 // File: contracts\common\Context.sol
+
 
 pragma solidity ^0.8.0;
 
@@ -13,87 +15,79 @@ abstract contract Context {
     }
 }
 
-// File: contracts\security\Pausable.sol
+// File: contracts\security\Ownable.sol
 
 pragma solidity ^0.8.0;
 
-abstract contract Pausable is Context {
-    /**
-     * @dev Emitted when the pause is triggered by `account`.
-     */
-    event Paused(address account);
 
-    /**
-     * @dev Emitted when the pause is lifted by `account`.
-     */
-    event Unpaused(address account);
 
-    bool private _paused;
 
-    /**
-     * @dev Initializes the contract in unpaused state.
-     */
+abstract contract Ownable is Context {
+    uint256 public constant delay = 172_800; // delay for admin change
+    address private admin;
+    address private _feeReceiver;
+    address public pendingAdmin; // pending admin variable
+    uint256 public changeAdminDelay; // admin change delay variable
+
+    event ChangeAdmin(address sender, address newOwner);
+    event RejectPendingAdmin(address sender, address newOwner);
+    event AcceptPendingAdmin(address sender, address newOwner);
+
+    function onlyOwner() internal view {
+        require(_msgSender() == admin, "caller is not the owner");
+    }
+
     constructor() {
-        _paused = false;
+        admin = _msgSender();
+        _feeReceiver = _msgSender();
     }
 
-    /**
-     * @dev Returns true if the contract is paused, and false otherwise.
-     */
-    function paused() public view virtual returns (bool) {
-        return _paused;
+    function changeAdmin(address _admin) external {
+        onlyOwner();
+        pendingAdmin = _admin;
+        changeAdminDelay = block.timestamp + delay;
+        emit ChangeAdmin(_msgSender(), pendingAdmin);
     }
 
-    /**
-     * @dev Modifier to make a function callable only when the contract is not paused.
-     *
-     * Requirements:
-     *
-     * - The contract must not be paused.
-     */
-    function whenNotPaused() internal view {
-        require(!paused(), "Pausable: paused");
+    function rejectPendingAdmin() external {
+        onlyOwner();
+        if (pendingAdmin != address(0)) {
+            pendingAdmin = address(0);
+            changeAdminDelay = 0;
+        }
+        emit RejectPendingAdmin(_msgSender(), pendingAdmin);
     }
 
-    /**
-     * @dev Modifier to make a function callable only when the contract is paused.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
-     */
-    function whenPaused() internal view {
-        require(paused(), "Pausable: not paused");
+    function owner() public view returns (address) {
+        return admin;
     }
 
-    /**
-     * @dev Triggers stopped state.
-     *
-     * Requirements:
-     *
-     * - The contract must not be paused.
-     */
-    function _pause() internal virtual {
-        whenNotPaused();
-        _paused = true;
-        emit Paused(_msgSender());
+    function feeReceiver() public view returns (address) {
+        return payable(_feeReceiver);
     }
 
-    /**
-     * @dev Returns to normal state.
-     *
-     * Requirements:
-     *
-     * - The contract must be paused.
-     */
-    function _unpause() internal virtual {
-        whenPaused();
-        _paused = false;
-        emit Unpaused(_msgSender());
+    function setFeeReceiver(address feeReceiver_) external {
+        onlyOwner();
+        _feeReceiver = feeReceiver_;
+    }
+
+    function acceptPendingAdmin() external {
+        onlyOwner();
+        if (changeAdminDelay > 0 && pendingAdmin != address(0)) {
+            require(
+                block.timestamp > changeAdminDelay,
+                "owner apply too early"
+            );
+            admin = pendingAdmin;
+            changeAdminDelay = 0;
+            pendingAdmin = address(0);
+        }
+        emit AcceptPendingAdmin(_msgSender(), admin);
     }
 }
 
 // File: contracts\interfaces\IERC165.sol
+
 
 pragma solidity ^0.8.0;
 
@@ -109,40 +103,33 @@ interface IERC165 {
     function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
 
-// File: contracts\common\Erc165.sol
+// File: contracts\common\ERC165.sol
+
 
 pragma solidity ^0.8.0;
+
 
 abstract contract ERC165 is IERC165 {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
         return interfaceId == type(IERC165).interfaceId;
     }
 }
 
 // File: contracts\interfaces\IERC1155.sol
 
+
 pragma solidity ^0.8.0;
+
+
 
 interface IERC1155 is IERC165 {
     /**
      * @dev Emitted when `value` tokens of token type `id` are transferred from `from` to `to` by `operator`.
      */
-    event TransferSingle(
-        address indexed operator,
-        address indexed from,
-        address indexed to,
-        uint256 id,
-        uint256 value
-    );
+    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
 
     /**
      * @dev Equivalent to multiple {TransferSingle} events, where `operator`, `from` and `to` are the same for all
@@ -160,11 +147,7 @@ interface IERC1155 is IERC165 {
      * @dev Emitted when `account` grants or revokes permission to `operator` to transfer their tokens, according to
      * `approved`.
      */
-    event ApprovalForAll(
-        address indexed account,
-        address indexed operator,
-        bool approved
-    );
+    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
 
     /**
      * @dev Emitted when the URI for token type `id` changes to `value`, if it is a non-programmatic URI.
@@ -182,10 +165,7 @@ interface IERC1155 is IERC165 {
      *
      * - `account` cannot be the zero address.
      */
-    function balanceOf(address account, uint256 id)
-        external
-        view
-        returns (uint256);
+    function balanceOf(address account, uint256 id) external view returns (uint256);
 
     /**
      * @dev xref:ROOT:erc1155.adoc#batch-operations[Batched] version of {balanceOf}.
@@ -195,9 +175,9 @@ interface IERC1155 is IERC165 {
      * - `accounts` and `ids` must have the same length.
      */
     function balanceOfBatch(address[] calldata accounts, uint256[] calldata ids)
-        external
-        view
-        returns (uint256[] memory);
+    external
+    view
+    returns (uint256[] memory);
 
     /**
      * @dev Grants or revokes permission to `operator` to transfer the caller's tokens, according to `approved`,
@@ -215,10 +195,7 @@ interface IERC1155 is IERC165 {
      *
      * See {setApprovalForAll}.
      */
-    function isApprovedForAll(address account, address operator)
-        external
-        view
-        returns (bool);
+    function isApprovedForAll(address account, address operator) external view returns (bool);
 
     /**
      * @dev Transfers `amount` tokens of token type `id` from `from` to `to`.
@@ -263,7 +240,9 @@ interface IERC1155 is IERC165 {
 
 // File: contracts\interfaces\IERC1155Receiver.sol
 
+
 pragma solidity ^0.8.0;
+
 
 interface IERC1155Receiver is IERC165 {
     /**
@@ -316,7 +295,10 @@ interface IERC1155Receiver is IERC165 {
 
 // File: contracts\interfaces\IERC1155MetadataURI.sol
 
+
 pragma solidity ^0.8.0;
+
+
 
 interface IERC1155MetadataURI is IERC1155 {
     /**
@@ -330,7 +312,9 @@ interface IERC1155MetadataURI is IERC1155 {
 
 // File: contracts\libraries\Address.sol
 
+
 pragma solidity ^0.8.0;
+
 
 library Address {
     /**
@@ -384,16 +368,10 @@ library Address {
      * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
      */
     function sendValue(address payable recipient, uint256 amount) internal {
-        require(
-            address(this).balance >= amount,
-            "Address: insufficient balance"
-        );
+        require(address(this).balance >= amount, "Address: insufficient balance");
 
         (bool success, ) = recipient.call{value: amount}("");
-        require(
-            success,
-            "Address: unable to send value, recipient may have reverted"
-        );
+        require(success, "Address: unable to send value, recipient may have reverted");
     }
 
     /**
@@ -414,10 +392,7 @@ library Address {
      *
      * _Available since v3.1._
      */
-    function functionCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
-    {
+    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
         return functionCall(target, data, "Address: low-level call failed");
     }
 
@@ -451,13 +426,7 @@ library Address {
         bytes memory data,
         uint256 value
     ) internal returns (bytes memory) {
-        return
-            functionCallWithValue(
-                target,
-                data,
-                value,
-                "Address: low-level call with value failed"
-            );
+        return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
     }
 
     /**
@@ -472,15 +441,10 @@ library Address {
         uint256 value,
         string memory errorMessage
     ) internal returns (bytes memory) {
-        require(
-            address(this).balance >= value,
-            "Address: insufficient balance for call"
-        );
+        require(address(this).balance >= value, "Address: insufficient balance for call");
         require(isContract(target), "Address: call to non-contract");
 
-        (bool success, bytes memory returndata) = target.call{value: value}(
-            data
-        );
+        (bool success, bytes memory returndata) = target.call{value: value}(data);
         return verifyCallResult(success, returndata, errorMessage);
     }
 
@@ -490,17 +454,8 @@ library Address {
      *
      * _Available since v3.3._
      */
-    function functionStaticCall(address target, bytes memory data)
-        internal
-        view
-        returns (bytes memory)
-    {
-        return
-            functionStaticCall(
-                target,
-                data,
-                "Address: low-level static call failed"
-            );
+    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {
+        return functionStaticCall(target, data, "Address: low-level static call failed");
     }
 
     /**
@@ -526,16 +481,8 @@ library Address {
      *
      * _Available since v3.4._
      */
-    function functionDelegateCall(address target, bytes memory data)
-        internal
-        returns (bytes memory)
-    {
-        return
-            functionDelegateCall(
-                target,
-                data,
-                "Address: low-level delegate call failed"
-            );
+    function functionDelegateCall(address target, bytes memory data) internal returns (bytes memory) {
+        return functionDelegateCall(target, data, "Address: low-level delegate call failed");
     }
 
     /**
@@ -586,7 +533,14 @@ library Address {
 
 // File: contracts\tokens\ERC1155\ERC1155.sol
 
+
 pragma solidity ^0.8.0;
+
+
+
+
+
+
 
 contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
@@ -776,9 +730,9 @@ contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
             fromBalance >= amount,
             "ERC1155: insufficient balance for transfer"
         );
-        unchecked {
-            _balances[id][from] = fromBalance - amount;
-        }
+        // unchecked {
+        //     _balances[id][from] = fromBalance - amount;
+        // }
         _balances[id][to] += amount;
 
         emit TransferSingle(operator, from, to, id, amount);
@@ -824,9 +778,9 @@ contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
                 fromBalance >= amount,
                 "ERC1155: insufficient balance for transfer"
             );
-            unchecked {
-                _balances[id][from] = fromBalance - amount;
-            }
+            // unchecked {
+            //     _balances[id][from] = fromBalance - amount;
+            // }
             _balances[id][to] += amount;
         }
 
@@ -973,9 +927,9 @@ contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
 
         uint256 fromBalance = _balances[id][from];
         require(fromBalance >= amount, "ERC1155: burn amount exceeds balance");
-        unchecked {
-            _balances[id][from] = fromBalance - amount;
-        }
+        // unchecked {
+        //     _balances[id][from] = fromBalance - amount;
+        // }
 
         emit TransferSingle(operator, from, address(0), id, amount);
 
@@ -1013,9 +967,9 @@ contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
                 fromBalance >= amount,
                 "ERC1155: burn amount exceeds balance"
             );
-            unchecked {
-                _balances[id][from] = fromBalance - amount;
-            }
+            // unchecked {
+            //     _balances[id][from] = fromBalance - amount;
+            // }
         }
 
         emit TransferBatch(operator, from, address(0), ids, amounts);
@@ -1168,39 +1122,533 @@ contract ERC1155 is Context, ERC165, IERC1155, IERC1155MetadataURI {
     }
 }
 
-// File: contracts\tokens\ERC1155\ERC1155Burnable.sol
+// File: contracts\interfaces\IERC2981.sol
+
+// OpenZeppelin Contracts (last updated v4.6.0) (interfaces/IERC2981.sol)
 
 pragma solidity ^0.8.0;
 
-abstract contract ERC1155Burnable is ERC1155 {
-    function burn(
-        address account,
-        uint256 id,
-        uint256 value
-    ) public virtual {
-        require(
-            account == _msgSender() || isApprovedForAll(account, _msgSender()),
-            "ERC1155: caller is not owner nor approved"
-        );
 
-        _burn(account, id, value);
+/**
+ * @dev Interface for the NFT Royalty Standard.
+ *
+ * A standardized way to retrieve royalty payment information for non-fungible tokens (NFTs) to enable universal
+ * support for royalty payments across all NFT marketplaces and ecosystem participants.
+ *
+ * _Available since v4.5._
+ */
+interface IERC2981 is IERC165 {
+    /**
+     * @dev Returns how much royalty is owed and to whom, based on a sale price that may be denominated in any unit of
+     * exchange. The royalty amount is denominated and should be paid in that same unit of exchange.
+     */
+    function royaltyInfo(uint256 tokenId, uint256 salePrice)
+        external
+        view
+        returns (address receiver, uint256 royaltyAmount);
+}
+
+// File: contracts\common\ERC2981.sol
+
+
+pragma solidity ^0.8.0;
+
+
+
+abstract contract ERC2981 is IERC2981, ERC165 {
+    struct RoyaltyInfo {
+        address receiver;
+        uint96 royaltyFraction;
     }
 
-    function burnBatch(
-        address account,
-        uint256[] memory ids,
-        uint256[] memory values
-    ) public virtual {
-        require(
-            account == _msgSender() || isApprovedForAll(account, _msgSender()),
-            "ERC1155: caller is not owner nor approved"
-        );
+    RoyaltyInfo private _defaultRoyaltyInfo;
+    mapping(uint256 => RoyaltyInfo) private _tokenRoyaltyInfo;
 
-        _burnBatch(account, ids, values);
+    /**
+     * @dev See {IERC165-supportsInterface}.
+     */
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(IERC165, ERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC2981).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
+    /**
+     * @inheritdoc IERC2981
+     */
+    function royaltyInfo(uint256 _tokenId, uint256 _salePrice)
+        external
+        view
+        virtual
+        override
+        returns (address, uint256)
+    {
+        RoyaltyInfo memory royalty = _tokenRoyaltyInfo[_tokenId];
+
+        if (royalty.receiver == address(0)) {
+            royalty = _defaultRoyaltyInfo;
+        }
+
+        uint256 royaltyAmount = (_salePrice * royalty.royaltyFraction) /
+            _feeDenominator();
+
+        return (royalty.receiver, royaltyAmount);
+    }
+
+    /**
+     * @dev The denominator with which to interpret the fee set in {_setTokenRoyalty} and {_setDefaultRoyalty} as a
+     * fraction of the sale price. Defaults to 10000 so fees are expressed in basis points, but may be customized by an
+     * override.
+     */
+    function _feeDenominator() internal pure virtual returns (uint96) {
+        return 10000;
+    }
+
+    /**
+     * @dev Sets the royalty information that all ids in this contract will default to.
+     *
+     * Requirements:
+     *
+     * - `receiver` cannot be the zero address.
+     * - `feeNumerator` cannot be greater than the fee denominator.
+     */
+    function _setDefaultRoyalty(address receiver, uint96 feeNumerator)
+        internal
+        virtual
+    {
+        require(
+            feeNumerator <= _feeDenominator(),
+            "ERC2981: royalty fee will exceed salePrice"
+        );
+        require(receiver != address(0), "ERC2981: invalid receiver");
+
+        _defaultRoyaltyInfo = RoyaltyInfo(receiver, feeNumerator);
+    }
+
+    /**
+     * @dev Removes default royalty information.
+     */
+    function _deleteDefaultRoyalty() internal virtual {
+        delete _defaultRoyaltyInfo;
+    }
+
+    /**
+     * @dev Sets the royalty information for a specific token id, overriding the global default.
+     *
+     * Requirements:
+     *
+     * - `tokenId` must be already minted.
+     * - `receiver` cannot be the zero address.
+     * - `feeNumerator` cannot be greater than the fee denominator.
+     */
+    function _setTokenRoyalty(
+        uint256 tokenId,
+        address receiver,
+        uint96 feeNumerator
+    ) internal virtual {
+        require(
+            feeNumerator <= _feeDenominator(),
+            "ERC2981: royalty fee will exceed salePrice"
+        );
+        require(receiver != address(0), "ERC2981: Invalid parameters");
+
+        _tokenRoyaltyInfo[tokenId] = RoyaltyInfo(receiver, feeNumerator);
+    }
+
+    /**
+     * @dev Resets royalty information for the token id back to the global default.
+     */
+    function _resetTokenRoyalty(uint256 tokenId) internal virtual {
+        delete _tokenRoyaltyInfo[tokenId];
+    }
+
+    function royaltyData(uint256 tokenId) public view virtual returns(address, uint96){
+        return (_tokenRoyaltyInfo[tokenId].receiver, _tokenRoyaltyInfo[tokenId].royaltyFraction);
     }
 }
 
-// File: contracts\fortune\fortune_eth.sol
+// File: contracts\libraries\Strings.sol
+
+
+pragma solidity ^0.8.1;
+
+library Strings {
+    bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` decimal representation.
+     */
+    function toString(uint256 value) internal pure returns (string memory) {
+        // Inspired by OraclizeAPI's implementation - MIT licence
+        // https://github.com/oraclize/ethereum-api/blob/b42146b063c7d6ee1358846c198246239e9360e8/oraclizeAPI_0.4.25.sol
+
+        if (value == 0) {
+            return "0";
+        }
+        uint256 temp = value;
+        uint256 digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = bytes1(uint8(48 + uint256(value % 10)));
+            value /= 10;
+        }
+        return string(buffer);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
+     */
+    function toHexString(uint256 value) internal pure returns (string memory) {
+        if (value == 0) {
+            return "0x00";
+        }
+        uint256 temp = value;
+        uint256 length = 0;
+        while (temp != 0) {
+            length++;
+            temp >>= 8;
+        }
+        return toHexString(value, length);
+    }
+
+    /**
+     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+     */
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
+        bytes memory buffer = new bytes(2 * length + 2);
+        buffer[0] = "0";
+        buffer[1] = "x";
+        for (uint256 i = 2 * length + 1; i > 1; --i) {
+            buffer[i] = _HEX_SYMBOLS[value & 0xf];
+            value >>= 4;
+        }
+        require(value == 0, "Strings: hex length insufficient");
+        return string(buffer);
+    }
+}
+
+// File: contracts\libraries\ECDSA.sol
+
+
+pragma solidity ^0.8.1;
+
+
+library ECDSA {
+    enum RecoverError {
+        NoError,
+        InvalidSignature,
+        InvalidSignatureLength,
+        InvalidSignatureS,
+        InvalidSignatureV
+    }
+
+    function _throwError(RecoverError error) private pure {
+        if (error == RecoverError.NoError) {
+            return; // no error: do nothing
+        } else if (error == RecoverError.InvalidSignature) {
+            revert("ECDSA: invalid signature");
+        } else if (error == RecoverError.InvalidSignatureLength) {
+            revert("ECDSA: invalid signature length");
+        } else if (error == RecoverError.InvalidSignatureS) {
+            revert("ECDSA: invalid signature 's' value");
+        } else if (error == RecoverError.InvalidSignatureV) {
+            revert("ECDSA: invalid signature 'v' value");
+        }
+    }
+
+    /**
+     * @dev Returns the address that signed a hashed message (`hash`) with
+     * `signature` or error string. This address can then be used for verification purposes.
+     *
+     * The `ecrecover` EVM opcode allows for malleable (non-unique) signatures:
+     * this function rejects them by requiring the `s` value to be in the lower
+     * half order, and the `v` value to be either 27 or 28.
+     *
+     * IMPORTANT: `hash` _must_ be the result of a hash operation for the
+     * verification to be secure: it is possible to craft signatures that
+     * recover to arbitrary addresses for non-hashed data. A safe way to ensure
+     * this is by receiving a hash of the original message (which may otherwise
+     * be too long), and then calling {toEthSignedMessageHash} on it.
+     *
+     * Documentation for signature generation:
+     * - with https://web3js.readthedocs.io/en/v1.3.4/web3-eth-accounts.html#sign[Web3.js]
+     * - with https://docs.ethers.io/v5/api/signer/#Signer-signMessage[ethers]
+     *
+     * _Available since v4.3._
+     */
+    function tryRecover(bytes32 hash, bytes memory signature) internal pure returns (address, RecoverError) {
+        // Check the signature length
+        // - case 65: r,s,v signature (standard)
+        // - case 64: r,vs signature (cf https://eips.ethereum.org/EIPS/eip-2098) _Available since v4.1._
+        if (signature.length == 65) {
+            bytes32 r;
+            bytes32 s;
+            uint8 v;
+            // ecrecover takes the signature parameters, and the only way to get them
+            // currently is to use assembly.
+            assembly {
+                r := mload(add(signature, 0x20))
+                s := mload(add(signature, 0x40))
+                v := byte(0, mload(add(signature, 0x60)))
+            }
+            return tryRecover(hash, v, r, s);
+        } else if (signature.length == 64) {
+            bytes32 r;
+            bytes32 vs;
+            // ecrecover takes the signature parameters, and the only way to get them
+            // currently is to use assembly.
+            assembly {
+                r := mload(add(signature, 0x20))
+                vs := mload(add(signature, 0x40))
+            }
+            return tryRecover(hash, r, vs);
+        } else {
+            return (address(0), RecoverError.InvalidSignatureLength);
+        }
+    }
+
+    /**
+     * @dev Returns the address that signed a hashed message (`hash`) with
+     * `signature`. This address can then be used for verification purposes.
+     *
+     * The `ecrecover` EVM opcode allows for malleable (non-unique) signatures:
+     * this function rejects them by requiring the `s` value to be in the lower
+     * half order, and the `v` value to be either 27 or 28.
+     *
+     * IMPORTANT: `hash` _must_ be the result of a hash operation for the
+     * verification to be secure: it is possible to craft signatures that
+     * recover to arbitrary addresses for non-hashed data. A safe way to ensure
+     * this is by receiving a hash of the original message (which may otherwise
+     * be too long), and then calling {toEthSignedMessageHash} on it.
+     */
+    function recover(bytes32 hash, bytes memory signature) internal pure returns (address) {
+        (address recovered, RecoverError error) = tryRecover(hash, signature);
+        _throwError(error);
+        return recovered;
+    }
+
+    /**
+     * @dev Overload of {ECDSA-tryRecover} that receives the `r` and `vs` short-signature fields separately.
+     *
+     * See https://eips.ethereum.org/EIPS/eip-2098[EIP-2098 short signatures]
+     *
+     * _Available since v4.3._
+     */
+    function tryRecover(
+        bytes32 hash,
+        bytes32 r,
+        bytes32 vs
+    ) internal pure returns (address, RecoverError) {
+        bytes32 s = vs & bytes32(0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff);
+        uint8 v = uint8((uint256(vs) >> 255) + 27);
+        return tryRecover(hash, v, r, s);
+    }
+
+    /**
+     * @dev Overload of {ECDSA-recover} that receives the `r and `vs` short-signature fields separately.
+     *
+     * _Available since v4.2._
+     */
+    function recover(
+        bytes32 hash,
+        bytes32 r,
+        bytes32 vs
+    ) internal pure returns (address) {
+        (address recovered, RecoverError error) = tryRecover(hash, r, vs);
+        _throwError(error);
+        return recovered;
+    }
+
+    /**
+     * @dev Overload of {ECDSA-tryRecover} that receives the `v`,
+     * `r` and `s` signature fields separately.
+     *
+     * _Available since v4.3._
+     */
+    function tryRecover(
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal pure returns (address, RecoverError) {
+        // EIP-2 still allows signature malleability for ecrecover(). Remove this possibility and make the signature
+        // unique. Appendix F in the Ethereum Yellow paper (https://ethereum.github.io/yellowpaper/paper.pdf), defines
+        // the valid range for s in (301): 0 < s < secp256k1n ÷ 2 + 1, and for v in (302): v ∈ {27, 28}. Most
+        // signatures from current libraries generate a unique signature with an s-value in the lower half order.
+        //
+        // If your library generates malleable signatures, such as s-values in the upper range, calculate a new s-value
+        // with 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141 - s1 and flip v from 27 to 28 or
+        // vice versa. If your library also generates signatures with 0/1 for v instead 27/28, add 27 to v to accept
+        // these malleable signatures as well.
+        if (uint256(s) > 0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) {
+            return (address(0), RecoverError.InvalidSignatureS);
+        }
+        if (v != 27 && v != 28) {
+            return (address(0), RecoverError.InvalidSignatureV);
+        }
+
+        // If the signature is valid (and not malleable), return the signer address
+        address signer = ecrecover(hash, v, r, s);
+        if (signer == address(0)) {
+            return (address(0), RecoverError.InvalidSignature);
+        }
+
+        return (signer, RecoverError.NoError);
+    }
+
+    /**
+     * @dev Overload of {ECDSA-recover} that receives the `v`,
+     * `r` and `s` signature fields separately.
+     */
+    function recover(
+        bytes32 hash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal pure returns (address) {
+        (address recovered, RecoverError error) = tryRecover(hash, v, r, s);
+        _throwError(error);
+        return recovered;
+    }
+
+    /**
+     * @dev Returns an Ethereum Signed Message, created from a `hash`. This
+     * produces hash corresponding to the one signed with the
+     * https://eth.wiki/json-rpc/API#eth_sign[`eth_sign`]
+     * JSON-RPC method as part of EIP-191.
+     *
+     * See {recover}.
+     */
+    function toEthSignedMessageHash(bytes32 hash) internal pure returns (bytes32) {
+        // 32 is the length in bytes of hash,
+        // enforced by the type signature above
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));
+    }
+
+    /**
+     * @dev Returns an Ethereum Signed Message, created from `s`. This
+     * produces hash corresponding to the one signed with the
+     * https://eth.wiki/json-rpc/API#eth_sign[`eth_sign`]
+     * JSON-RPC method as part of EIP-191.
+     *
+     * See {recover}.
+     */
+    function toEthSignedMessageHash(bytes memory s) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", Strings.toString(s.length), s));
+    }
+
+    /**
+     * @dev Returns an Ethereum Signed Typed Data, created from a
+     * `domainSeparator` and a `structHash`. This produces hash corresponding
+     * to the one signed with the
+     * https://eips.ethereum.org/EIPS/eip-712[`eth_signTypedData`]
+     * JSON-RPC method as part of EIP-712.
+     *
+     * See {recover}.
+     */
+    function toTypedDataHash(bytes32 domainSeparator, bytes32 structHash) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
+    }
+}
+
+// File: contracts\votes\EIP712.sol
+
+
+pragma solidity ^0.8.1;
+
+
+abstract contract EIP712 {
+    /* solhint-disable var-name-mixedcase */
+    // Cache the domain separator as an immutable value, but also store the chain id that it corresponds to, in order to
+    // invalidate the cached domain separator if the chain id changes.
+    bytes32 private immutable _CACHED_DOMAIN_SEPARATOR;
+    uint256 private immutable _CACHED_CHAIN_ID;
+    address private immutable _CACHED_THIS;
+
+    bytes32 private immutable _HASHED_NAME;
+    bytes32 private immutable _HASHED_VERSION;
+    bytes32 private immutable _TYPE_HASH;
+
+    /* solhint-enable var-name-mixedcase */
+
+    /**
+     * @dev Initializes the domain separator and parameter caches.
+     *
+     * The meaning of `name` and `version` is specified in
+     * https://eips.ethereum.org/EIPS/eip-712#definition-of-domainseparator[EIP 712]:
+     *
+     * - `name`: the user readable name of the signing domain, i.e. the name of the DApp or the protocol.
+     * - `version`: the current major version of the signing domain.
+     *
+     * NOTE: These parameters cannot be changed except through a xref:learn::upgrading-smart-contracts.adoc[smart
+     * contract upgrade].
+     */
+    constructor(string memory name, string memory version) {
+        bytes32 hashedName = keccak256(bytes(name));
+        bytes32 hashedVersion = keccak256(bytes(version));
+        bytes32 typeHash = keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
+        _HASHED_NAME = hashedName;
+        _HASHED_VERSION = hashedVersion;
+        _CACHED_CHAIN_ID = block.chainid;
+        _CACHED_DOMAIN_SEPARATOR = _buildDomainSeparator(typeHash, hashedName, hashedVersion);
+        _CACHED_THIS = address(this);
+        _TYPE_HASH = typeHash;
+    }
+
+    /**
+     * @dev Returns the domain separator for the current chain.
+     */
+    function _domainSeparatorV4() internal view returns (bytes32) {
+        if (address(this) == _CACHED_THIS && block.chainid == _CACHED_CHAIN_ID) {
+            return _CACHED_DOMAIN_SEPARATOR;
+        } else {
+            return _buildDomainSeparator(_TYPE_HASH, _HASHED_NAME, _HASHED_VERSION);
+        }
+    }
+
+    function _buildDomainSeparator(
+        bytes32 typeHash,
+        bytes32 nameHash,
+        bytes32 versionHash
+    ) private view returns (bytes32) {
+        return keccak256(abi.encode(typeHash, nameHash, versionHash, block.chainid, address(this)));
+    }
+
+    /**
+     * @dev Given an already https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct[hashed struct], this
+     * function returns the hash of the fully encoded EIP712 message for this domain.
+     *
+     * This hash can be used together with {ECDSA-recover} to obtain the signer of a message. For example:
+     *
+     * ```solidity
+     * bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
+     *     keccak256("Mail(address to,string contents)"),
+     *     mailTo,
+     *     keccak256(bytes(mailContents))
+     * )));
+     * address signer = ECDSA.recover(digest, signature);
+     * ```
+     */
+    function _hashTypedDataV4(bytes32 structHash) internal view virtual returns (bytes32) {
+        return ECDSA.toTypedDataHash(_domainSeparatorV4(), structHash);
+    }
+}
+
+// File: contracts\fortune\fortune_EAK.sol
+
 
 // File: @openzeppelin/contracts/utils/Context.sol
 
@@ -1208,263 +1656,210 @@ abstract contract ERC1155Burnable is ERC1155 {
 
 pragma solidity ^0.8.0;
 
-contract Fortune is Pausable, ERC1155Burnable {
-    string public name = "Fortune Treasure Hunting";
-    string public symbol = "FORT";
-    address public treasurer;
-    address public owner;
 
-    //    //    uint256[] supplies = [4000, 250];
-    //    uint256[] supplies = [9, 4];
-    //    uint256[] minted = [0, 0];
-    //    uint256[] rates = [.001 ether, 0 ether];
-    //    uint256[] whitelistCount = [0, 0];
+
+
+
+
+contract FortuneEAK is Ownable, ERC1155, EIP712, ERC2981 {
+    string public constant name = "Fortune Treasure Hunting";
+    string public constant symbol = "FORT";
 
     mapping(uint256 => uint256) public supplies; // tokenId => supply value
     mapping(uint256 => uint256) public minted; // tokenId => minted amount
-    mapping(uint256 => uint256) private rates; // tokenId => rate value
-    mapping(uint256 => uint256) private whitelistCount;
+    mapping(uint256 => uint256) public rates; // tokenId => rate value
+    mapping(uint256 => bool) public usedNonce; // tokenId => bool used
+    mapping(uint256 => bool) public initializedId; // tokenId => bool initialized
+    mapping(address => bool) public isMinter; // address => bool isMinter
 
-    mapping(uint256 => string) public tokenURI;
-    mapping(address => uint256) public whitelist;
+    mapping(uint256 => string) private tokenURI;
 
-    //  Change the whitelist mapping to this
-    // mapping(address => mapping(uint256=> bool)) public whitelist;
-
-    constructor() ERC1155("") {
-        name = name;
-        symbol = symbol;
-        treasurer = msg.sender;
-        owner = msg.sender;
-
-        supplies[1] = 9;
-        supplies[2] = 4;
-
-        rates[1] = .001 ether;
-        rates[2] = 0 ether;
+    constructor(address _owner) ERC1155("") EIP712(name, "1.0.1") {
+        isMinter[_owner] = true;
     }
 
-    function setURI(uint256 _id, string memory _uri) external {
+    function initToken(
+        uint256 tokenId,
+        uint256 supply,
+        uint256 etherFees,
+        uint96 royaltyFee,
+        string calldata _uri
+    ) external {
+        onlyOwner();
+        rates[tokenId] = etherFees;
+        supplies[tokenId] = supply;
+        initializedId[tokenId] = true;
+        _setTokenRoyalty(tokenId, feeReceiver(), royaltyFee);
+        tokenURI[tokenId] = _uri;
+        emit URI(_uri, tokenId);
+    }
+
+    function setToken(
+        uint256 tokenId,
+        uint256 supply,
+        uint256 etherFees
+    ) external {
+        onlyOwner();
+        rates[tokenId] = etherFees;
+        supplies[tokenId] = supply;
+    }
+
+    function setURI(uint256 _id, string calldata _uri) external {
         onlyOwner();
         tokenURI[_id] = _uri;
         emit URI(_uri, _id);
     }
 
-    function pause() public {
+    event Withdraw(address to, uint256 value);
+
+    function withdraw(uint256 amount) external {
+        payable(feeReceiver()).transfer(amount);
+        emit Withdraw(feeReceiver(), amount);
+    }
+
+    /// @dev The StructHash of the mint function,
+    /// used for verifying the off-chaiin signature
+    bytes32 MINT_STRUCT =
+        keccak256(
+            "MintWithSig(bytes whitelistData,address to,uint256 tokenId,uint256 amount,uint256 nonce)"
+        );
+
+    /// @dev Minting tokens to the address `to` with the tokenId
+    /// `tokenId` and the amount `amount`.
+    /// @param whitelistData the bytes value of the userdata
+    /// @param to the address to transfer the minted token to
+    /// @param tokenId the tokenId to be minted
+    /// @param amount the amount of tokenId to be minted
+    /// @param nonce the nonce value for this signature to prevent replay attack
+    /// @param v the value of the ECDSA signature
+    /// @param r the value of the ECDSA signature
+    /// @param s the value of the ECDSA signature
+    function mintWithSig(
+        bytes calldata whitelistData,
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        // bool mintAirdrop,
+        // uint256 airdropId,
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external payable {
+        verifyMint(
+            whitelistData,
+            to,
+            tokenId,
+            amount,
+            // mintAirdrop,
+            // airdropId,
+            nonce,
+            v,
+            r,
+            s
+        );
+        uint256 reqValue = rates[tokenId] * amount;
+        require(msg.value >= reqValue, "value too low");
+        _mint(to, tokenId, amount, "");
+        // if (mintAirdrop) _mint(to, airdropId, 1, "");
+    }
+
+    /// @dev   Minting tokens to the address `to`
+    /// with the tokenId `tokenId` and the amount `amount`.
+    /// @param to the address to send minted token to
+    /// @param tokenId the tokenId to mint
+    /// @param amount the amount of token of tokenId to be minted
+
+    function mint(
+        address to,
+        uint256 tokenId,
+        uint256 amount
+    ) external {
+        require(
+            isMinter[msg.sender] && initializedId[tokenId],
+            "only minter or not initialized tokenId"
+        );
+        _mint(to, tokenId, amount, "");
+    }
+
+    function verifyMint(
+        bytes calldata whitelistData,
+        address to,
+        uint256 tokenId,
+        uint256 amount,
+        // bool mintAirdrop,
+        // uint256 airdropId,
+        uint256 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) private {
+        bytes32 hashedStruct = keccak256(
+            abi.encode(
+                MINT_STRUCT,
+                keccak256(whitelistData),
+                to,
+                tokenId,
+                amount,
+                // mintAirdrop,
+                // airdropId,
+                nonce
+            )
+        );
+        address signer = ECDSA.recover(_hashTypedDataV4(hashedStruct), v, r, s);
+        require(!usedNonce[nonce] && signer == owner(), "sig or nonce Err");
+        usedNonce[nonce] = true;
+        minted[tokenId] += amount;
+        // track minted valume and check if token is initialized
+        require(
+            minted[tokenId] <= supplies[tokenId] && initializedId[tokenId],
+            "supply exceeded"
+        );
+    }
+
+    event SetMinter(address minter, bool isminter);
+
+    function setMinter(address _minter, bool isminter) external {
         onlyOwner();
-        _pause();
+
+        isMinter[_minter] = isminter;
+        emit SetMinter(_minter, isminter);
     }
 
-    function unpause() public {
+    function burn(
+        address account,
+        uint256 _id,
+        uint256 _amount
+    ) external {
         onlyOwner();
-        _unpause();
+        ERC1155._burn(account, _id, _amount);
     }
 
-    function withdrawAll() external {
-        onlyTreasurer();
-        _withdraw(address(this).balance);
-    }
-
-    function withdrawPart(uint256 amount) external {
-        onlyTreasurer();
-        _withdraw(amount);
-    }
-
-    function _withdraw(uint256 amount) private {
-        payable(treasurer).transfer(amount);
-    }
-
-    function changeTreasurer(address _treasurer) external {
-        onlyTreasurer();
-        treasurer = _treasurer;
-    }
-
-    function changeOwner(address _owner) external {
+    function burnBatch(
+        address account,
+        uint256[] memory _ids,
+        uint256[] memory _amounts
+    ) external {
         onlyOwner();
-        owner = _owner;
+        ERC1155._burnBatch(account, _ids, _amounts);
     }
-
-    function mintAll(address _to) external payable {
-        whenNotPaused();
-        onlyWhitelistAddress(_to);
-        require(msg.value >= rates[1], "Not enough ether sent");
-
-        uint256 _id = isWhitelisted(_to);
-        mint(_to, _id);
-
-        if (_id != 1) {
-            mint(_to, 1);
-        }
-        whitelist[_to] = 99;
-    }
-
-    function mint(address _to, uint256 _id) internal {
-        //        whenNotPaused();
-        onlyWhitelistAddress(_to);
-        //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-        validTokenId(_id);
-
-        require(minted[_id] + 1 <= supplies[_id], "Not enough supply");
-        _mint(_to, _id, 1, "");
-
-        minted[_id]++;
-    }
-
-    function burn(uint256 _id, uint256 _amount) external {
-        whenNotPaused();
-        onlyTokenOwner(_id);
-        _burn(msg.sender, _id, _amount);
-    }
-
-    function burnBatch(uint256[] memory _ids, uint256[] memory _amounts)
-        external
-    {
-        whenNotPaused();
-        for (uint256 i = 0; i < _ids.length; i++) {
-            onlyTokenOwner(_ids[i]);
-        }
-        _burnBatch(msg.sender, _ids, _amounts);
-    }
-
-    //    function burnForMint(
-    //        address _from,
-    //        uint256[] memory _burnIds,
-    //        uint256[] memory _burnAmounts,
-    //        uint256[] memory _mintIds,
-    //        uint256[] memory _mintAmounts
-    //    ) external {
-    //        onlyOwner();
-    //        _burnBatch(_from, _burnIds, _burnAmounts);
-    //        _mintBatch(_from, _mintIds, _mintAmounts, "");
-    //    }
 
     function uri(uint256 _id) public view override returns (string memory) {
         return tokenURI[_id];
     }
 
-    //    function _beforeTokenTransfer(
-    //        address operator,
-    //        address from,
-    //        address to,
-    //        uint256[] memory ids,
-    //        uint256[] memory amounts,
-    //        bytes memory data
-    //    ) internal override(ERC1155) {
-    //        whenNotPaused();
-    //        super._beforeTokenTransfer(operator, from, to, ids, amounts, data);
-    //    }
-
-    function batchWhitelistAddress(address[] memory _addresses, uint256 _id)
-        external
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC1155, ERC2981)
+        returns (bool)
     {
-        onlyOwner();
-        validTokenId(_id);
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            // if(!whitelist[_address][_id]){
-            // require(
-            //     whitelistCount[_id] + 1 <= supplies[_id],
-            //     "Exceed maxSupply"
-            // );
-            // whitelist[_address][_id] =true;
-            // whitelistCount[_id]++;
-            // }
-            //
-            if (whitelist[_addresses[i]] == 0) {
-                whitelist[_addresses[i]] = _id;
-                require(
-                    whitelistCount[_id] + 1 <= supplies[_id],
-                    "Exceed maxSupply"
-                );
-                whitelistCount[_id]++;
-                if (_id != 1) {
-                    require(
-                        whitelistCount[1] + 1 <= supplies[1],
-                        "Exceed maxSupply"
-                    );
-                    whitelistCount[1]++;
-                }
-            }
-        }
+        return
+            ERC2981.supportsInterface(interfaceId) ||
+            ERC1155.supportsInterface(interfaceId);
     }
 
-    function batchRemoveWhitelist(address[] memory _addresses, uint256 _id)
-        external
-    {
-        // Uncomment the only owner protection
-        //        onlyOwner();
-        validTokenId(_id);
-        for (uint256 i = 0; i < _addresses.length; i++) {
-            _RemoveWhitelist(_addresses[i], _id);
-        }
-    }
-
-    function _RemoveWhitelist(address _address, uint256 _id) internal {
-        onlyOwner();
-        // if(whitelist[_address][_id])
-        // whitelist[_address][_id] = false;
-        // very efficient and gas saving compared to what you currently have
-        if (whitelist[_address] == _id) {
-            if (_id == 1) {
-                whitelist[_address] = 0;
-            } else {
-                whitelist[_address] = 1;
-            }
-            whitelistCount[_id]--;
-        }
-    }
-
-    function isWhitelisted(address _address) public view returns (uint256) {
-        return whitelist[_address]; // whitelist[_address][_id]
-    }
-
-    function contractBalance() public view returns (uint256) {
-        onlyOwner(); // this is useless
+    function contractBalance() external view returns (uint256) {
         return address(this).balance;
-    }
-
-    function getWhitelistCount(uint256 _id) public view returns (uint256) {
-        return whitelistCount[_id];
-    }
-
-    function getMintedCount(uint256 _id) public view returns (uint256) {
-        return minted[_id];
-    }
-
-    function getMaxSupply(uint256 _id) public view returns (uint256) {
-        return supplies[_id];
-    }
-
-    function onlyOwner() internal view {
-        require(
-            msg.sender == owner,
-            "You are not the owner to call this function"
-        );
-    }
-
-    function onlyWhitelistAddress(address _to) internal view {
-        require(whitelist[_to] != 0, "Address not whitelisted. Cant mint.");
-        require(whitelist[_to] != 99, "Address already minted!");
-    }
-
-    function onlyTreasurer() internal view {
-        require(
-            msg.sender == treasurer,
-            "Only the current treasurer can call this function"
-        );
-    }
-
-    //    function validTokenId(uint256 _id) internal view {
-    //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-    //    }
-    function validTokenId(uint256 _id) internal view {
-        //        require(_id <= supplies.length && _id > 0, "Token doesn't exist");
-        require(supplies[_id] != 0, "Token doesn't exist");
-    }
-
-    function onlyTokenOwner(uint256 _id) internal view {
-        require(
-            balanceOf(msg.sender, _id) != 0,
-            "You are not the owner of this NFT."
-        );
     }
 }

@@ -9,18 +9,12 @@ pragma solidity ^0.8.0;
 import "../security/Ownable.sol";
 import "../tokens/ERC1155/ERC1155.sol";
 import "../common/ERC2981.sol";
-import "../libraries/SignatureHelper.sol";
+import "../votes/EIP712.sol";
+import "../libraries/ECDSA.sol";
 
-contract Fortune is Ownable, ERC1155, ERC2981 {
+contract FortuneEAK is Ownable, ERC1155, EIP712, ERC2981 {
     string public constant name = "Fortune Treasure Hunting";
     string public constant symbol = "FORT";
-
-    bytes32 private immutable DOMAIN_SEPARATOR;
-
-    bytes32 private constant DOMAIN_TYPEHASH =
-        keccak256(
-            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-        );
 
     mapping(uint256 => uint256) public supplies; // tokenId => supply value
     mapping(uint256 => uint256) public minted; // tokenId => minted amount
@@ -31,16 +25,7 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
 
     mapping(uint256 => string) private tokenURI;
 
-    constructor(address _owner) ERC1155("") {
-        DOMAIN_SEPARATOR = keccak256(
-            abi.encode(
-                DOMAIN_TYPEHASH,
-                keccak256(bytes(name)), // name
-                keccak256(bytes("1.0.1")), // version
-                block.chainid,
-                address(this)
-            )
-        );
+    constructor(address _owner) ERC1155("") EIP712(name, "1.0.1") {
         isMinter[_owner] = true;
     }
 
@@ -76,8 +61,6 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
         emit URI(_uri, _id);
     }
 
- 
-
     event Withdraw(address to, uint256 value);
 
     function withdraw(uint256 amount) external {
@@ -85,15 +68,11 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
         emit Withdraw(feeReceiver(), amount);
     }
 
-   
-
-  
-
     /// @dev The StructHash of the mint function,
     /// used for verifying the off-chaiin signature
     bytes32 MINT_STRUCT =
         keccak256(
-            "MINT(bytes whitelistData,address to,uint256 tokenId,uint256 amount,uint256 nonce)"
+            "MintWithSig(bytes whitelistData,address to,uint256 tokenId,uint256 amount,uint256 nonce)"
         );
 
     /// @dev Minting tokens to the address `to` with the tokenId
@@ -103,16 +82,20 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
     /// @param tokenId the tokenId to be minted
     /// @param amount the amount of tokenId to be minted
     /// @param nonce the nonce value for this signature to prevent replay attack
-    /// @param signature the signature value to be verified before minting
+    /// @param v the value of the ECDSA signature
+    /// @param r the value of the ECDSA signature
+    /// @param s the value of the ECDSA signature
     function mintWithSig(
         bytes calldata whitelistData,
         address to,
         uint256 tokenId,
-        uint256 amount,
+        uint256 amount, 
         // bool mintAirdrop,
         // uint256 airdropId,
         uint256 nonce,
-        bytes calldata signature
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) external payable {
         verifyMint(
             whitelistData,
@@ -122,7 +105,9 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
             // mintAirdrop,
             // airdropId,
             nonce,
-            signature
+            v,
+            r,
+            s
         );
         uint256 reqValue = rates[tokenId] * amount;
         require(msg.value >= reqValue, "value too low");
@@ -156,7 +141,9 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
         // bool mintAirdrop,
         // uint256 airdropId,
         uint256 nonce,
-        bytes calldata signature
+        uint8 v,
+        bytes32 r,
+        bytes32 s
     ) private {
         bytes32 hashedStruct = keccak256(
             abi.encode(
@@ -170,16 +157,8 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
                 nonce
             )
         );
-        require(
-            !usedNonce[nonce] &&
-                SignatureHelper.verify(
-                    owner(),
-                    DOMAIN_SEPARATOR,
-                    hashedStruct,
-                    signature
-                ),
-            "sig or nonce Err"
-        );
+        address signer = ECDSA.recover(_hashTypedDataV4(hashedStruct), v, r, s);
+        require(!usedNonce[nonce] && signer == owner(), "sig or nonce Err");
         usedNonce[nonce] = true;
         minted[tokenId] += amount;
         // track minted valume and check if token is initialized
@@ -234,6 +213,4 @@ contract Fortune is Ownable, ERC1155, ERC2981 {
     function contractBalance() external view returns (uint256) {
         return address(this).balance;
     }
-
-    
 }
